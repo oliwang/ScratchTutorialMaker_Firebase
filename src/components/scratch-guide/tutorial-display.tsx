@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { exportToGoogleDocs } from "@/services/google-docs";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen, Loader2, FileJson, Package, Download, Eye, ListTree, X as XIcon } from "lucide-react"; // Added Package, Download, Eye, ListTree, XIcon
+import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen, Loader2, FileJson, Package, Download, ListTree, TriangleAlert } from "lucide-react"; // Added TriangleAlert
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import Image from 'next/image';
@@ -30,7 +30,6 @@ import * as React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import JSZip from "jszip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog"; // Import Dialog components
 
 // Helper to determine resource type icon
 const getAssetIcon = (assetType: 'image' | 'sound') => {
@@ -94,14 +93,13 @@ const downloadBlob = (blob: Blob, filename: string) => {
   document.body.removeChild(a);
 };
 
-// Asset Preview Component
-interface AssetPreviewProps {
-    assetInfo: AssetInfo | null;
+// Inline Asset Preview Cell Component
+interface AssetPreviewCellProps {
+    assetInfo: AssetInfo;
     uploadedFile: File | null;
-    onClose: () => void;
 }
 
-function AssetPreview({ assetInfo, uploadedFile, onClose }: AssetPreviewProps) {
+function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
@@ -109,91 +107,99 @@ function AssetPreview({ assetInfo, uploadedFile, onClose }: AssetPreviewProps) {
 
     React.useEffect(() => {
         let objectUrl: string | null = null;
+        let isMounted = true; // Flag to track mount status
 
         const loadPreview = async () => {
-            if (!assetInfo || !uploadedFile) return;
+            if (!assetInfo || !uploadedFile) {
+                 setError("Project file missing");
+                 return;
+            }
 
             setIsLoading(true);
             setError(null);
-            setPreviewUrl(null); // Clear previous preview
+            setPreviewUrl(null);
 
             try {
                 const zip = await JSZip.loadAsync(uploadedFile);
                 const assetFile = zip.file(assetInfo.md5ext);
                 if (!assetFile) {
-                    throw new Error(`Asset ${assetInfo.md5ext} not found in project.`);
+                    throw new Error(`Asset not found`);
                 }
 
                 const blob = await assetFile.async('blob');
+                 if (!isMounted) return; // Don't proceed if unmounted
+
                 objectUrl = URL.createObjectURL(blob);
+                 if (!isMounted) { // Check again after async op
+                    URL.revokeObjectURL(objectUrl);
+                    return;
+                 }
                 setPreviewUrl(objectUrl);
 
             } catch (err) {
-                console.error("Error loading asset preview:", err);
-                const message = err instanceof Error ? err.message : "Failed to load preview.";
-                setError(message);
-                toast({ title: "Preview Error", description: message, variant: "destructive" });
+                 console.error(`Error loading preview for ${assetInfo.name}:`, err);
+                 if (!isMounted) return;
+                 const message = err instanceof Error ? err.message : "Load failed";
+                 setError(message);
+                // Optionally show a toast, but could be noisy in a table
+                // toast({ title: "Preview Error", description: `${assetInfo.name}: ${message}`, variant: "destructive" });
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                 }
             }
         };
 
         loadPreview();
 
-        // Cleanup function to revoke the object URL
+        // Cleanup function
         return () => {
+            isMounted = false; // Set flag on unmount
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
-                // console.log("Revoked preview URL:", objectUrl); // For debugging
             }
         };
-    }, [assetInfo, uploadedFile, toast]); // Rerun when asset or file changes
+     }, [assetInfo, uploadedFile, toast]); // Rerun only when asset or file changes
 
-    if (!assetInfo) return null; // Should not happen if Dialog is controlled properly
+    if (isLoading) {
+        return <Skeleton className="h-10 w-10 rounded" />;
+    }
 
-    return (
-        <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
-            <DialogHeader>
-                <DialogTitle>Preview: {assetInfo.name}</DialogTitle>
-                 {/* Close button provided by DialogContent */}
-            </DialogHeader>
-            <div className="flex-grow overflow-auto p-4 flex items-center justify-center bg-muted/30 rounded">
-                {isLoading && (
-                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                        <span>Loading preview...</span>
-                    </div>
-                )}
-                {error && (
-                    <div className="text-destructive text-center">
-                        <AlertCircle className="h-6 w-6 mx-auto mb-2" />
-                        <p>Error loading preview:</p>
-                        <p className="text-sm">{error}</p>
-                    </div>
-                )}
-                {previewUrl && !isLoading && !error && (
-                    <>
-                        {assetInfo.type === 'image' && (
-                            <Image
-                                src={previewUrl}
-                                alt={`Preview of ${assetInfo.name}`}
-                                width={500} // Adjust as needed, consider container size
-                                height={400} // Adjust as needed
-                                style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
-                                unoptimized // Necessary for blob URLs
-                            />
-                        )}
-                        {assetInfo.type === 'sound' && (
-                            <audio controls src={previewUrl} className="w-full">
-                                Your browser does not support the audio element.
-                            </audio>
-                        )}
-                    </>
-                )}
-            </div>
-             {/* DialogClose is implicitly handled by the 'X' button in DialogContent */}
-        </DialogContent>
-    );
+    if (error) {
+         return <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50" title={`Error: ${error}`}>
+            <TriangleAlert className="h-5 w-5 text-destructive" />
+         </div>;
+    }
+
+    if (previewUrl) {
+        if (assetInfo.type === 'image') {
+            return (
+                <Image
+                    src={previewUrl}
+                    alt={`Preview of ${assetInfo.name}`}
+                    width={40} // Small thumbnail size
+                    height={40}
+                    style={{ objectFit: 'contain', borderRadius: '4px' }}
+                    unoptimized // Necessary for blob URLs
+                    className="border"
+                />
+            );
+        }
+        if (assetInfo.type === 'sound') {
+             // Render a compact audio player - browsers handle this differently
+            return (
+                <audio controls src={previewUrl} style={{ maxWidth: '100px', height: '30px' }} className="rounded">
+                    {/* Fallback text if audio element not supported */}
+                    <a href={previewUrl} download={assetInfo.name}>Download</a>
+                </audio>
+            );
+        }
+    }
+
+     // Fallback or if asset type is unknown
+    return <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50">
+             <FileText className="h-5 w-5 text-muted-foreground" />
+           </div>;
 }
 
 
@@ -204,8 +210,6 @@ export function TutorialDisplay() {
     const [isExporting, setIsExporting] = React.useState(false);
     const [isDownloadingAll, setIsDownloadingAll] = React.useState(false);
     const [isDownloadingSingle, setIsDownloadingSingle] = React.useState<string | null>(null);
-    const [previewAsset, setPreviewAsset] = React.useState<AssetInfo | null>(null); // State for asset preview dialog
-    const [isPreviewOpen, setIsPreviewOpen] = React.useState(false); // State to control Dialog visibility
 
      const handleExport = async () => {
         if (tutorialState.status !== 'success' || !tutorialState.data) return;
@@ -304,17 +308,6 @@ export function TutorialDisplay() {
         } finally {
             setIsDownloadingAll(false);
         }
-    };
-
-     const handlePreviewAsset = (asset: AssetInfo) => {
-        setPreviewAsset(asset);
-        setIsPreviewOpen(true); // Open the dialog
-    };
-
-    const handleClosePreview = () => {
-        setIsPreviewOpen(false);
-        // Delay clearing the asset slightly to allow fade-out animation if needed
-        setTimeout(() => setPreviewAsset(null), 300);
     };
 
     // Group assets by type
@@ -431,36 +424,31 @@ export function TutorialDisplay() {
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
-                                                            <TableHead className="w-[120px]">Name</TableHead>
+                                                            <TableHead className="w-[50px]">Preview</TableHead> {/* Preview Column */}
+                                                            <TableHead className="w-[150px]">Name</TableHead>
                                                             <TableHead>Filename</TableHead>
-                                                            <TableHead className="text-right w-[100px]">Actions</TableHead>
+                                                            <TableHead className="text-right w-[60px]">Download</TableHead> {/* Actions -> Download */}
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
                                                         {groupedAssets.image.map((asset) => (
                                                             <TableRow key={asset.md5ext}>
-                                                                <TableCell className="font-medium truncate max-w-[100px]" title={asset.name}>{asset.name}</TableCell>
-                                                                <TableCell className="text-muted-foreground truncate max-w-[150px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
-                                                                <TableCell className="text-right space-x-1">
-                                                                    <Button
+                                                                 <TableCell>
+                                                                    <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
+                                                                </TableCell>
+                                                                <TableCell className="font-medium truncate max-w-[150px]" title={asset.name}>{asset.name}</TableCell>
+                                                                <TableCell className="text-muted-foreground truncate max-w-[200px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
+                                                                <TableCell className="text-right">
+                                                                     {/* Keep only Download button */}
+                                                                     <Button
                                                                         variant="ghost"
-                                                                        size="icon" // Changed to icon
-                                                                        onClick={() => handlePreviewAsset(asset)}
-                                                                        disabled={!uploadedFile}
-                                                                        title={`Preview ${asset.name}`}
-                                                                        className="h-8 w-8" // Adjust size if needed
-                                                                    >
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon" // Changed to icon
+                                                                        size="icon"
                                                                         onClick={() => handleDownloadSingleAsset(asset.md5ext, asset.name)}
                                                                         disabled={!uploadedFile || isDownloadingSingle === asset.md5ext || isDownloadingAll}
                                                                         title={`Download ${asset.name}`}
-                                                                        className="h-8 w-8" // Adjust size if needed
+                                                                        className="h-8 w-8"
                                                                     >
-                                                                        {isDownloadingSingle === asset.md5ext ? (
+                                                                         {isDownloadingSingle === asset.md5ext ? (
                                                                             <Loader2 className="h-4 w-4 animate-spin" />
                                                                         ) : (
                                                                             <Download className="h-4 w-4" />
@@ -481,27 +469,22 @@ export function TutorialDisplay() {
                                                 <Table>
                                                      <TableHeader>
                                                         <TableRow>
-                                                            <TableHead className="w-[120px]">Name</TableHead>
+                                                             <TableHead className="w-[120px]">Preview</TableHead> {/* Preview Column */}
+                                                            <TableHead className="w-[150px]">Name</TableHead>
                                                             <TableHead>Filename</TableHead>
-                                                            <TableHead className="text-right w-[100px]">Actions</TableHead>
+                                                             <TableHead className="text-right w-[60px]">Download</TableHead> {/* Actions -> Download */}
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
                                                         {groupedAssets.sound.map((asset) => (
                                                             <TableRow key={asset.md5ext}>
-                                                                <TableCell className="font-medium truncate max-w-[100px]" title={asset.name}>{asset.name}</TableCell>
-                                                                <TableCell className="text-muted-foreground truncate max-w-[150px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
-                                                                 <TableCell className="text-right space-x-1">
-                                                                     <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => handlePreviewAsset(asset)}
-                                                                        disabled={!uploadedFile}
-                                                                        title={`Preview ${asset.name}`}
-                                                                        className="h-8 w-8"
-                                                                    >
-                                                                        <Eye className="h-4 w-4" />
-                                                                    </Button>
+                                                                 <TableCell>
+                                                                    <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
+                                                                </TableCell>
+                                                                <TableCell className="font-medium truncate max-w-[150px]" title={asset.name}>{asset.name}</TableCell>
+                                                                <TableCell className="text-muted-foreground truncate max-w-[200px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
+                                                                 <TableCell className="text-right">
+                                                                     {/* Keep only Download button */}
                                                                      <Button
                                                                         variant="ghost"
                                                                         size="icon"
@@ -619,14 +602,7 @@ export function TutorialDisplay() {
                 </CardFooter>
             </Card>
 
-             {/* Asset Preview Dialog */}
-             <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-                <AssetPreview
-                    assetInfo={previewAsset}
-                    uploadedFile={uploadedFile}
-                    onClose={handleClosePreview}
-                />
-            </Dialog>
+             {/* Removed Asset Preview Dialog */}
             </>
         );
     }
