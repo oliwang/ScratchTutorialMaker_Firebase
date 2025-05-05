@@ -292,8 +292,8 @@ export function TutorialDisplay() {
         }
     };
 
-    const handleDownloadAllAssets = async (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation(); // Prevent accordion from toggling
+    const handleDownloadAllAssets = async (e?: React.MouseEvent<HTMLButtonElement>) => {
+        e?.stopPropagation(); // Prevent accordion from toggling if called from trigger
         if (!uploadedFile || tutorialState.status !== 'success' || !tutorialState.data?.assets || tutorialState.data.assets.length === 0) {
             toast({ title: "No Assets", description: "No assets found to download or project not loaded.", variant: "destructive" });
             return;
@@ -459,16 +459,14 @@ export function TutorialDisplay() {
                                  <AccordionItem value="project-assets" className="border-b-0">
                                     {/* Modified AccordionTrigger to include Download All button */}
                                     <div className="flex justify-between items-center w-full py-4">
-                                        <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
-                                             <ListTree className="h-5 w-5 text-primary" /> Project Assets ({assets.length})
-                                        </AccordionTrigger>
+                                        {/* Download All button moved to the left */}
                                         <Button
                                             variant="ghost"
                                             size="icon"
                                             onClick={handleDownloadAllAssets}
                                             disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
                                             title="Download All Assets (.zip)"
-                                            className="ml-2 h-8 w-8 flex-shrink-0"
+                                            className="mr-2 h-8 w-8 flex-shrink-0"
                                             aria-label="Download All Assets"
                                         >
                                              {isDownloadingAll ? (
@@ -477,6 +475,10 @@ export function TutorialDisplay() {
                                                 <Package className="h-4 w-4" />
                                             )}
                                         </Button>
+                                        <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
+                                             <ListTree className="h-5 w-5 text-primary" /> Project Assets ({assets.length})
+                                        </AccordionTrigger>
+                                        {/* The chevron is automatically added by AccordionTrigger */}
                                     </div>
                                     <AccordionContent className="pt-2 pb-4 px-1 space-y-4">
                                         {Object.entries(groupedAssetsByExtension).map(([extension, assetList]) => (
@@ -524,6 +526,26 @@ export function TutorialDisplay() {
                                                 </Table>
                                             </div>
                                         ))}
+                                        {/* Add Download All Assets button at the end */}
+                                        <div className="mt-4 flex justify-end">
+                                            <Button
+                                                onClick={() => handleDownloadAllAssets()} // No event needed here
+                                                disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
+                                                className="bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                                            >
+                                                {isDownloadingAll ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                        Zipping...
+                                                    </>
+                                                ) : (
+                                                     <>
+                                                        <Package className="mr-2 h-4 w-4" />
+                                                        Download All Assets (.zip)
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
