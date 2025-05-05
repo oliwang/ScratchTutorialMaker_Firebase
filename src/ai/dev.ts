@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/generate-tutorial-steps.ts';
+import '@/ai/flows/summarize-scratch-project.ts';
