@@ -6,7 +6,7 @@ import { Provider as JotaiProvider } from 'jotai';
 import { Toaster } from "@/components/ui/toaster"; // Import Toaster
 
 export const metadata: Metadata = {
-  title: 'Scratch Guide',
+  title: 'Scratch Tutorial Maker', // Updated title
   description: 'Generate tutorials for your Scratch projects.',
 };
 

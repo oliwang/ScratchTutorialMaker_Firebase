@@ -9,8 +9,8 @@ export function Header() {
           className="flex items-center gap-2 text-lg font-semibold md:text-base text-primary"
         >
           <BlocksIcon className="h-6 w-6" />
-          <span className="sr-only">Scratch Guide</span>
-          Scratch Guide
+          <span className="sr-only">Scratch Tutorial Maker</span> {/* Updated screen reader text */}
+          Scratch Tutorial Maker {/* Updated visible text */}
         </a>
       </nav>
       {/* Add user menu or other header items here if needed */}
