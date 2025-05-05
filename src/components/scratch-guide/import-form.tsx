@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTransition } from "react";
 import { useAtom } from "jotai";
-import JSZip from "jszip"; // Import JSZip
+import JSZip from "jszip";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { tutorialDataAtom } from "@/store/atoms";
+import { tutorialDataAtom, uploadedFileAtom, AssetInfo } from "@/store/atoms"; // Import AssetInfo and uploadedFileAtom
 import type { ScratchProject } from "@/services/scratch";
 import { Loader2, Upload } from "lucide-react";
+import { extractAssetsFromProjectJson } from "@/lib/scratchUtils"; // Import the utility function
 
 // Mock GenerateTutorialStepsOutput type since the flow is removed
 interface GenerateTutorialStepsOutput {
@@ -39,6 +40,7 @@ const formSchema = z.object({
 export function ImportForm() {
   const [isPending, startTransition] = useTransition();
   const [, setTutorialData] = useAtom(tutorialDataAtom);
+  const [, setUploadedFile] = useAtom(uploadedFileAtom); // Atom setter for the file
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,25 +53,32 @@ export function ImportForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     startTransition(async () => {
       setTutorialData({ status: "loading", data: null, error: null });
+      setUploadedFile(null); // Clear previous file
       try {
         let scratchProject: ScratchProject;
-        let projectJson: any = null; // To store parsed project.json
-        let projectJsonContent: string | null = null; // To store raw project.json string
+        let projectJson: any = null;
+        let projectJsonContent: string | null = null;
+        let assets: AssetInfo[] = []; // Initialize assets array
 
         if (values.file) {
            toast({ title: "Reading .sb3 file..." });
            console.log(`Processing uploaded SB3 file: ${values.file.name}, size: ${values.file.size} bytes.`);
+           setUploadedFile(values.file); // Store the file object in the atom
 
-           // Use JSZip to read the project.json file
            try {
              const zip = await JSZip.loadAsync(values.file);
              const projectJsonFile = zip.file('project.json');
 
              if (projectJsonFile) {
-               projectJsonContent = await projectJsonFile.async('string'); // Store raw string
-               projectJson = JSON.parse(projectJsonContent); // Parse for potential future use
-               console.log("Successfully parsed project.json:", projectJson);
-               toast({ title: "Project data extracted.", description: "Found project.json within the .sb3 file." });
+               projectJsonContent = await projectJsonFile.async('string');
+               projectJson = JSON.parse(projectJsonContent);
+               console.log("Successfully parsed project.json");
+               toast({ title: "Project data extracted.", description: "Found and parsed project.json." });
+
+               // Extract assets using the utility function
+               assets = extractAssetsFromProjectJson(projectJsonContent);
+               toast({ title: "Assets identified", description: `Found ${assets.length} assets.` });
+
              } else {
                throw new Error("project.json not found in the .sb3 file.");
              }
@@ -79,19 +88,14 @@ export function ImportForm() {
              throw new Error(`Error processing .sb3 file: ${zipErrorMessage}`);
            }
 
-          // Create scratch project object (use file name as fallback)
           scratchProject = {
              id: `local-${values.file.name}-${values.file.lastModified}`,
              name: values.file.name.replace('.sb3', ''),
-             // Attempt to get description from project.json if available, otherwise use default
-             // Note: Scratch project description is usually fetched from API, project.json doesn't typically store it.
-             description: "Project uploaded from file.", // Keeping placeholder description
-             // Resources can potentially be extracted from project.json (e.g., costumes, sounds), but complex.
-             resources: [], // Keeping placeholder resources
+             description: "Project uploaded from file.",
+             resources: [], // Placeholder for potential future use
            };
 
         } else {
-          // This case should ideally be prevented by the form validation
           throw new Error("No .sb3 file provided.");
         }
 
@@ -99,7 +103,6 @@ export function ImportForm() {
         toast({ title: "Generating tutorial steps (Mock Data)..." });
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
 
-        // --- Provide Mock Data instead of calling AI ---
         const mockTutorialResult: GenerateTutorialStepsOutput = {
           tutorialSteps: [
             {
@@ -123,10 +126,10 @@ export function ImportForm() {
             data: {
                 projectName: scratchProject.name,
                 projectDescription: scratchProject.description,
-                // Use actual resources if parsed, otherwise keep placeholder
-                resources: scratchProject.resources.length > 0 ? scratchProject.resources : ['sprite1', 'sound1', 'backdrop1'], // Example placeholder if empty
-                tutorialSteps: mockTutorialResult.tutorialSteps, // Use mock data
-                projectJsonContent: projectJsonContent, // Store the raw JSON content string
+                resources: scratchProject.resources, // Keep original resources field
+                tutorialSteps: mockTutorialResult.tutorialSteps,
+                projectJsonContent: projectJsonContent,
+                assets: assets, // Store the extracted assets
             },
             error: null,
         });
@@ -140,6 +143,7 @@ export function ImportForm() {
         console.error(`Error during file import/generation process:`, error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         setTutorialData({ status: "error", data: null, error: errorMessage });
+        setUploadedFile(null); // Clear file on error
         toast({
           title: "Error Processing Project",
           description: errorMessage,
@@ -159,7 +163,7 @@ export function ImportForm() {
         <FormField
           control={form.control}
           name="file"
-          render={({ field: { onChange, onBlur, name, ref } }) => ( // Destructure carefully for file input
+          render={({ field: { onChange, onBlur, name, ref } }) => (
             <FormItem>
               <FormLabel>Scratch Project File (.sb3)</FormLabel>
               <FormControl>
