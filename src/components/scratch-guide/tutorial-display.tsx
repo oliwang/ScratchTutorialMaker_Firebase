@@ -111,19 +111,20 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
 
         const loadPreview = async () => {
             if (!assetInfo || !uploadedFile) {
-                 setError("Project file missing");
+                 // Don't set error if just initially missing file
+                 // setError("Project file missing");
                  return;
             }
 
             setIsLoading(true);
             setError(null);
-            setPreviewUrl(null);
+            setPreviewUrl(null); // Reset preview while loading
 
             try {
                 const zip = await JSZip.loadAsync(uploadedFile);
                 const assetFile = zip.file(assetInfo.md5ext);
                 if (!assetFile) {
-                    throw new Error(`Asset not found`);
+                    throw new Error(`Asset file not found in zip`);
                 }
 
                 const blob = await assetFile.async('blob');
@@ -137,7 +138,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                 setPreviewUrl(objectUrl);
 
             } catch (err) {
-                 console.error(`Error loading preview for ${assetInfo.name}:`, err);
+                 console.error(`Error loading preview for ${assetInfo.name} (${assetInfo.md5ext}):`, err);
                  if (!isMounted) return;
                  const message = err instanceof Error ? err.message : "Load failed";
                  setError(message);
@@ -157,9 +158,13 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
             isMounted = false; // Set flag on unmount
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
+                // console.log(`Revoked URL for ${assetInfo?.name}`);
             }
+            setPreviewUrl(null); // Clear preview on unmount or re-render
         };
-     }, [assetInfo, uploadedFile, toast]); // Rerun only when asset or file changes
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+     }, [assetInfo.md5ext, uploadedFile]); // Rerun only when asset md5ext or file changes
+
 
     if (isLoading) {
         return <Skeleton className="h-10 w-10 rounded" />;
@@ -173,6 +178,20 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
 
     if (previewUrl) {
         if (assetInfo.type === 'image') {
+            // Use standard img tag for SVGs from blob URLs
+            if (assetInfo.dataFormat === 'svg') {
+                return (
+                    <img
+                        src={previewUrl}
+                        alt={`Preview of ${assetInfo.name}`}
+                        width={40}
+                        height={40}
+                        style={{ objectFit: 'contain', borderRadius: '4px', border: '1px solid hsl(var(--border))' }}
+                        className="bg-white" // Add white background for transparent SVGs
+                    />
+                );
+            }
+            // Use Next Image for other image types
             return (
                 <Image
                     src={previewUrl}
@@ -186,17 +205,18 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
             );
         }
         if (assetInfo.type === 'sound') {
-             // Render a compact audio player - browsers handle this differently
+             // Render a compact audio player
             return (
                 <audio controls src={previewUrl} style={{ maxWidth: '100px', height: '30px' }} className="rounded">
-                    {/* Fallback text if audio element not supported */}
+                    {/* Fallback text */}
+                    Your browser does not support the audio element.
                     <a href={previewUrl} download={assetInfo.name}>Download</a>
                 </audio>
             );
         }
     }
 
-     // Fallback or if asset type is unknown
+     // Fallback or if asset type is unknown or previewUrl is null
     return <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50">
              <FileText className="h-5 w-5 text-muted-foreground" />
            </div>;
@@ -316,12 +336,13 @@ export function TutorialDisplay() {
             return { image: [], sound: [] };
         }
         return tutorialState.data.assets.reduce((acc, asset) => {
-            if (!acc[asset.type]) {
-                acc[asset.type] = [];
+            const typeKey = asset.type === 'image' ? 'image' : 'sound'; // Ensure only 'image' or 'sound' keys
+            if (!acc[typeKey]) { // Initialize if it doesn't exist
+                acc[typeKey] = [];
             }
-            acc[asset.type].push(asset);
+            acc[typeKey].push(asset);
             return acc;
-        }, { image: [] as AssetInfo[], sound: [] as AssetInfo[] });
+        }, { image: [] as AssetInfo[], sound: [] as AssetInfo[] }); // Explicitly type the initial accumulator
     }, [tutorialState.data?.assets, tutorialState.status]);
 
 
@@ -607,5 +628,6 @@ export function TutorialDisplay() {
         );
     }
 
+    // If status is idle or somehow falls through, render nothing
     return null;
 }
