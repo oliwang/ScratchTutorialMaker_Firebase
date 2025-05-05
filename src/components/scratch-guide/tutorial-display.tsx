@@ -457,28 +457,29 @@ export function TutorialDisplay() {
                             <Separator />
                              <Accordion type="single" collapsible className="w-full" defaultValue={undefined}> {/* Default to collapsed */}
                                  <AccordionItem value="project-assets" className="border-b-0">
-                                    {/* Modified AccordionTrigger to include Download All button */}
+                                    {/* Modified AccordionTrigger container */}
                                     <div className="flex justify-between items-center w-full py-4">
-                                        {/* Download All button moved to the left */}
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={handleDownloadAllAssets}
-                                            disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
-                                            title="Download All Assets (.zip)"
-                                            className="mr-2 h-8 w-8 flex-shrink-0"
-                                            aria-label="Download All Assets"
-                                        >
-                                             {isDownloadingAll ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Package className="h-4 w-4" />
-                                            )}
-                                        </Button>
+                                        {/* Accordion Trigger on the left */}
                                         <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
                                              <ListTree className="h-5 w-5 text-primary" /> Project Assets ({assets.length})
                                         </AccordionTrigger>
-                                        {/* The chevron is automatically added by AccordionTrigger */}
+                                        {/* Download All button on the right */}
+                                        <Button
+                                            variant="outline" // Changed to outline to differentiate
+                                            size="sm"
+                                            onClick={handleDownloadAllAssets}
+                                            disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
+                                            title="Download All Assets (.zip)"
+                                            className="ml-4 flex-shrink-0" // Added margin-left
+                                            aria-label="Download All Assets"
+                                        >
+                                             {isDownloadingAll ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Package className="mr-2 h-4 w-4" />
+                                            )}
+                                             Download All Assets (.zip)
+                                        </Button>
                                     </div>
                                     <AccordionContent className="pt-2 pb-4 px-1 space-y-4">
                                         {Object.entries(groupedAssetsByExtension).map(([extension, assetList]) => (
