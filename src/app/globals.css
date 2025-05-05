@@ -9,24 +9,24 @@ body {
 @layer base {
   :root {
     /* Light Theme - Scratch Guide */
-    --background: 60 56% 91%; /* light beige (#f5f5dc) */
+    --background: 0 0% 100%; /* white */
     --foreground: 210 4% 16%; /* dark gray */
-    --card: 60 56% 93%; /* slightly lighter beige */
+    --card: 0 0% 98%; /* very light gray */
     --card-foreground: 210 4% 16%;
-    --popover: 60 56% 95%; /* even lighter beige */
+    --popover: 0 0% 100%; /* white */
     --popover-foreground: 210 4% 16%;
     --primary: 200 16% 46%; /* muted teal (#607c8a) - Used for non-interactive elements like headers */
     --primary-foreground: 60 100% 98%; /* very light */
-    --secondary: 60 30% 85%; /* lighter beige variant */
+    --secondary: 210 4% 96%; /* very light gray */
     --secondary-foreground: 210 4% 26%; /* darker gray */
-    --muted: 60 30% 88%;
+    --muted: 210 4% 96%; /* very light gray */
     --muted-foreground: 210 4% 45%;
     --accent: 0 19% 65%; /* dusty rose (#bc8f8f) - Used for interactive elements like buttons */
     --accent-foreground: 0 0% 100%; /* white */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 60 20% 80%; /* slightly darker beige */
-    --input: 60 20% 84%;
+    --border: 210 4% 90%; /* light gray */
+    --input: 210 4% 95%; /* very light gray */
     --ring: 0 19% 65%; /* dusty rose */
     --radius: 0.5rem;
 
@@ -38,18 +38,18 @@ body {
     --chart-5: 340 75% 55%;
 
     /* Sidebar (Adjust if sidebar component is used extensively, otherwise defaults are fine) */
-    --sidebar-background: 60 56% 93%;
+    --sidebar-background: 0 0% 98%; /* match card color */
     --sidebar-foreground: 210 4% 16%;
     --sidebar-primary: 0 19% 65%; /* dusty rose */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 60 30% 85%;
+    --sidebar-accent: 210 4% 96%; /* match secondary color */
     --sidebar-accent-foreground: 210 4% 16%;
-    --sidebar-border: 60 20% 80%;
+    --sidebar-border: 210 4% 90%; /* match border color */
     --sidebar-ring: 0 19% 65%;
   }
 
   .dark {
-    /* Dark Theme - Simple Inversion for Contrast */
+    /* Dark Theme - Kept as original for contrast */
     --background: 210 10% 12%; /* dark blue/gray */
     --foreground: 60 30% 90%; /* light beige/gray */
     --card: 210 10% 15%;
