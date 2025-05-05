@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -25,7 +26,7 @@ const nextConfig: NextConfig = {
       // It's a Node.js built-in module and not available in the browser
       config.resolve.fallback = {
         ...config.resolve.fallback,
-        async_hooks: false, // Add this line
+        async_hooks: false, // This line correctly handles the issue.
       };
     }
     // Important: return the modified config
@@ -34,3 +35,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
