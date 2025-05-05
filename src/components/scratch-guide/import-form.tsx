@@ -54,6 +54,8 @@ export function ImportForm() {
     startTransition(async () => {
       setTutorialData({ status: "loading", data: null, error: null });
       setUploadedFile(null); // Clear previous file
+      toast({ title: "Processing Scratch Project..." }); // Inform user processing started
+
       try {
         let scratchProject: ScratchProject;
         let projectJson: any = null;
@@ -61,7 +63,6 @@ export function ImportForm() {
         let assets: AssetInfo[] = []; // Initialize assets array
 
         if (values.file) {
-           toast({ title: "Reading .sb3 file..." });
            console.log(`Processing uploaded SB3 file: ${values.file.name}, size: ${values.file.size} bytes.`);
            setUploadedFile(values.file); // Store the file object in the atom
 
@@ -100,8 +101,8 @@ export function ImportForm() {
         }
 
         // --- AI Generation Simulation (currently disabled) ---
-        toast({ title: "Generating tutorial steps (Mock Data)..." });
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+        // toast({ title: "Generating tutorial steps (Mock Data)..." }); // Commented out, AI disabled
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay (reduced)
 
         const mockTutorialResult: GenerateTutorialStepsOutput = {
           tutorialSteps: [
@@ -135,7 +136,7 @@ export function ImportForm() {
         });
         toast({
             title: "Tutorial Generated (Using Mock Data)",
-            description: `Based on project: ${scratchProject.name}`,
+            description: `Loaded project: ${scratchProject.name}`,
         });
 
 

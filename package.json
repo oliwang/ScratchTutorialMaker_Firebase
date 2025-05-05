@@ -4,8 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 9002",
-    "genkit:dev": "echo 'Genkit dependencies removed.'",
-    "genkit:watch": "echo 'Genkit dependencies removed.'",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -40,7 +38,6 @@
     "date-fns": "^3.6.0",
     "firebase": "^11.3.0",
     "geist": "^1.3.1",
-    "genkit": "^1.6.2",
     "jotai": "^2.9.0",
     "jszip": "^3.10.1",
     "lucide-react": "^0.475.0",
@@ -59,7 +56,6 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "genkit-cli": "^1.6.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"

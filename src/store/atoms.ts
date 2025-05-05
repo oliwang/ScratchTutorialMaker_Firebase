@@ -1,5 +1,4 @@
 import { atom } from 'jotai';
-// import type { GenerateTutorialStepsOutput } from '@/ai/flows/generate-tutorial-steps'; // Removed
 
 // Define the structure locally since the flow file is removed
 interface TutorialStepSection {
