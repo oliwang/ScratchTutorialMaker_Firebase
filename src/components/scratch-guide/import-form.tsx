@@ -20,12 +20,18 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { tutorialDataAtom } from "@/store/atoms";
-import { summarizeScratchProject } from "@/ai/flows/summarize-scratch-project";
-import { generateTutorialSteps } from "@/ai/flows/generate-tutorial-steps";
+// import { summarizeScratchProject } from "@/ai/flows/summarize-scratch-project"; // Removed
+// import { generateTutorialSteps } from "@/ai/flows/generate-tutorial-steps"; // Removed
 import { getScratchProjectFromUrl } from "@/services/scratch"; // Assuming this is implemented
 import type { ScratchProject } from "@/services/scratch";
-import type { GenerateTutorialStepsOutput } from "@/ai/flows/generate-tutorial-steps";
+// import type { GenerateTutorialStepsOutput } from "@/ai/flows/generate-tutorial-steps"; // Removed
 import { Loader2, Upload, Link2 } from "lucide-react";
+
+// Mock GenerateTutorialStepsOutput type since the flow is removed
+interface GenerateTutorialStepsOutput {
+    tutorialSteps: Array<{ functionality: string; steps: string[] }>;
+}
+
 
 const formSchema = z.object({
   importType: z.enum(["url", "file"]).default("url"),
@@ -66,19 +72,14 @@ export function ImportForm() {
         let scratchProject: ScratchProject;
 
         if (values.importType === "url" && values.url) {
-          // TODO: Implement getScratchProjectFromUrl or replace with actual logic
-          // For now, simulate API call and use placeholder data
           toast({ title: "Fetching project from URL..." });
-          // In a real app, call getScratchProjectFromUrl(values.url)
            scratchProject = await getScratchProjectFromUrl(values.url);
            toast({ title: "Project details fetched.", description: `Name: ${scratchProject.name}` });
 
         } else if (values.importType === "file" && values.file) {
            toast({ title: "Processing uploaded file..." });
-          // TODO: Implement file processing logic to extract project data
-          // This might involve parsing the .sb3 file content
-          // For now, simulate processing and use placeholder data
-          await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate processing time
+          // Simulate processing for file upload
+          await new Promise(resolve => setTimeout(resolve, 1500));
           scratchProject = {
              name: values.file.name.replace('.sb3', ''),
              description: "Project uploaded from file.",
@@ -89,42 +90,49 @@ export function ImportForm() {
           throw new Error("Invalid import method or missing data.");
         }
 
-        // Generate Summary (optional, could be merged with tutorial generation)
-        // const summaryResult = await summarizeScratchProject({ scratchProjectUrl: values.url || 'placeholder_for_file' });
-        // console.log("Summary:", summaryResult.summary);
+        // Simulate AI call failure since Genkit is removed
+        toast({ title: "Generating tutorial steps (Simulated Failure)..." });
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
+        // throw new Error("AI functionality disabled: Genkit dependencies removed.");
 
-        // Generate Tutorial Steps
-        toast({ title: "Generating tutorial steps..." });
-        const tutorialResult: GenerateTutorialStepsOutput = await generateTutorialSteps({
-            scratchProject: {
-                name: scratchProject.name,
-                description: scratchProject.description,
-                resources: scratchProject.resources,
+        // --- Provide Mock Data instead of calling AI ---
+        const mockTutorialResult: GenerateTutorialStepsOutput = {
+          tutorialSteps: [
+            {
+              functionality: "Basic Setup (Mock Data)",
+              steps: ["Open Scratch", "Create a new sprite", "Choose a backdrop"]
+            },
+            {
+              functionality: "Movement (Mock Data)",
+              steps: ["Add 'when green flag clicked' block", "Add 'move 10 steps' block", "Add 'if on edge, bounce' block"]
             }
-        });
+          ]
+        };
+        // --- End Mock Data ---
 
-        setTutorialData({
+         setTutorialData({
             status: "success",
             data: {
                 projectName: scratchProject.name,
-                projectDescription: scratchProject.description, // Or use summaryResult.summary
+                projectDescription: scratchProject.description,
                 resources: scratchProject.resources,
-                tutorialSteps: tutorialResult.tutorialSteps,
+                tutorialSteps: mockTutorialResult.tutorialSteps, // Use mock data
             },
             error: null,
         });
         toast({
-            title: "Tutorial Generated Successfully!",
-            description: "Scroll down to view the tutorial.",
+            title: "Tutorial Generated (Using Mock Data)",
+            description: "Scroll down to view the mock tutorial.",
         });
 
+
       } catch (error) {
-        console.error("Error generating tutorial:", error);
+        console.error("Error during import/generation process:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         setTutorialData({ status: "error", data: null, error: errorMessage });
         toast({
           title: "Error",
-          description: `Failed to generate tutorial: ${errorMessage}`,
+          description: `Failed to process project: ${errorMessage}`,
           variant: "destructive",
         });
       }

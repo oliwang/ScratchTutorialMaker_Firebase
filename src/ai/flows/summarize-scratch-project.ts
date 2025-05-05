@@ -1,14 +1,14 @@
 'use server';
 
 /**
- * @fileOverview A Scratch project summarization AI agent.
+ * @fileOverview A Scratch project summarization AI agent. (DISABLED)
  *
- * - summarizeScratchProject - A function that handles the summarization of a Scratch project.
+ * - summarizeScratchProject - A function that handles the summarization of a Scratch project. (DISABLED)
  * - SummarizeScratchProjectInput - The input type for the summarizeScratchProject function.
  * - SummarizeScratchProjectOutput - The return type for the summarizeScratchProject function.
  */
 
-import {ai} from '@/ai/ai-instance';
+// import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
 import {ScratchProject, getScratchProjectFromUrl} from '@/services/scratch';
 
@@ -31,9 +31,17 @@ export type SummarizeScratchProjectOutput = z.infer<
 export async function summarizeScratchProject(
   input: SummarizeScratchProjectInput
 ): Promise<SummarizeScratchProjectOutput> {
-  return summarizeScratchProjectFlow(input);
+  // return summarizeScratchProjectFlow(input); // Disabled
+   console.warn("summarizeScratchProject called, but AI functionality is disabled.");
+   // Fetch project data anyway if needed, but don't call AI
+   const scratchProject: ScratchProject = await getScratchProjectFromUrl(
+     input.scratchProjectUrl
+   );
+   // Return mock/placeholder summary
+   return { summary: `Summary generation disabled. Project: ${scratchProject.name}` };
 }
 
+/*
 const summarizeScratchProjectPrompt = ai.definePrompt({
   name: 'summarizeScratchProjectPrompt',
   input: {
@@ -85,3 +93,4 @@ const summarizeScratchProjectFlow = ai.defineFlow<
     return output!;
   }
 );
+*/

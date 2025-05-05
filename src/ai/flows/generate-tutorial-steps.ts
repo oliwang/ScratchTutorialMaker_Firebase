@@ -1,15 +1,15 @@
-// use server'
+// 'use server'; // Keep directive if file is imported by server components
 
 /**
- * @fileOverview Generates tutorial steps for a Scratch project.
+ * @fileOverview Generates tutorial steps for a Scratch project. (DISABLED)
  *
- * - generateTutorialSteps - A function that generates tutorial steps for a Scratch project.
+ * - generateTutorialSteps - A function that generates tutorial steps for a Scratch project. (DISABLED)
  * - GenerateTutorialStepsInput - The input type for the generateTutorialSteps function.
  * - GenerateTutorialStepsOutput - The return type for the generateTutorialSteps function.
  */
 
-import {ai} from '@/ai/ai-instance';
-import {ScratchProject} from '@/services/scratch';
+// import {ai} from '@/ai/ai-instance';
+// import {ScratchProject} from '@/services/scratch';
 import {z} from 'genkit';
 
 const GenerateTutorialStepsInputSchema = z.object({
@@ -30,9 +30,17 @@ const GenerateTutorialStepsOutputSchema = z.object({
 export type GenerateTutorialStepsOutput = z.infer<typeof GenerateTutorialStepsOutputSchema>;
 
 export async function generateTutorialSteps(input: GenerateTutorialStepsInput): Promise<GenerateTutorialStepsOutput> {
-  return generateTutorialStepsFlow(input);
+  // return generateTutorialStepsFlow(input); // Disabled
+  console.warn("generateTutorialSteps called, but AI functionality is disabled.");
+  // Return mock/empty data or throw an error
+  return {
+    tutorialSteps: [
+       { functionality: "AI Disabled", steps: ["Genkit dependencies have been removed.", "Tutorial generation is currently unavailable."] }
+    ]
+  };
 }
 
+/*
 const prompt = ai.definePrompt({
   name: 'generateTutorialStepsPrompt',
   input: {
@@ -83,3 +91,4 @@ const generateTutorialStepsFlow = ai.defineFlow<
   });
   return output!;
 });
+*/

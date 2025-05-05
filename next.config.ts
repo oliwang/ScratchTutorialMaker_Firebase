@@ -19,19 +19,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Add webpack configuration to handle 'async_hooks' resolution
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      // Exclude 'async_hooks' from client-side bundles
-      // It's a Node.js built-in module and not available in the browser
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        async_hooks: false, // This line correctly handles the issue.
-      };
-    }
-    // Important: return the modified config
-    return config;
-  },
+  // Removed webpack configuration for 'async_hooks'
+  // webpack: (config, { isServer }) => {
+  //   if (!isServer) {
+  //     // Exclude 'async_hooks' from client-side bundles
+  //     // It's a Node.js built-in module and not available in the browser
+  //     config.resolve.fallback = {
+  //       ...config.resolve.fallback,
+  //       async_hooks: false, // This line correctly handles the issue.
+  //     };
+  //   }
+  //   // Important: return the modified config
+  //   return config;
+  // },
 };
 
 export default nextConfig;
