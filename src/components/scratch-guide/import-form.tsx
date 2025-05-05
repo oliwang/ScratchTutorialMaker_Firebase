@@ -22,7 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { tutorialDataAtom } from "@/store/atoms";
 // import { summarizeScratchProject } from "@/ai/flows/summarize-scratch-project"; // Removed
 // import { generateTutorialSteps } from "@/ai/flows/generate-tutorial-steps"; // Removed
-import { getScratchProjectFromUrl } from "@/services/scratch"; // Assuming this is implemented
+import { getScratchProjectFromUrl } from "@/services/scratch"; // Use the implemented function
 import type { ScratchProject } from "@/services/scratch";
 // import type { GenerateTutorialStepsOutput } from "@/ai/flows/generate-tutorial-steps"; // Removed
 import { Loader2, Upload, Link2 } from "lucide-react";
@@ -39,7 +39,8 @@ const formSchema = z.object({
   file: z.instanceof(File).optional(),
 }).refine(data => {
   if (data.importType === "url") {
-    return !!data.url;
+    // Basic check for scratch.mit.edu or turbowarp.org URLs
+    return !!data.url && (data.url.includes('scratch.mit.edu/projects/') || data.url.includes('turbowarp.org'));
   }
   if (data.importType === "file") {
     // In a real scenario, you'd add file validation here (size, type)
@@ -47,7 +48,7 @@ const formSchema = z.object({
   }
   return false;
 }, {
-  message: "Please provide either a URL or a file.",
+  message: "Please provide a valid Scratch project URL or an .sb3 file.",
   path: ["url"], // Apply error to url field for visibility, adjust as needed
 });
 
@@ -70,41 +71,57 @@ export function ImportForm() {
       setTutorialData({ status: "loading", data: null, error: null });
       try {
         let scratchProject: ScratchProject;
+        let fetchSource = "";
+        let sb3FileBlob: Blob | null = null; // Variable to hold the fetched .sb3 blob
 
         if (values.importType === "url" && values.url) {
-          toast({ title: "Fetching project from URL..." });
-           scratchProject = await getScratchProjectFromUrl(values.url);
-           toast({ title: "Project details fetched.", description: `Name: ${scratchProject.name}` });
+           fetchSource = "URL";
+           toast({ title: "Fetching project details and file from URL...", description: "This may take a moment." });
+           // Use the updated function that returns both metadata and the blob
+           const { projectData, sb3Blob } = await getScratchProjectFromUrl(values.url);
+           scratchProject = projectData;
+           sb3FileBlob = sb3Blob; // Store the fetched blob
+           toast({ title: "Project details and file fetched successfully.", description: `Project: ${scratchProject.name}` });
+           console.log(`Fetched metadata for project ID ${scratchProject.id}. SB3 file blob size: ${sb3FileBlob?.size || 0} bytes.`);
+           // TODO: You can now use sb3FileBlob for further processing if needed (e.g., pass to AI, parse resources)
 
         } else if (values.importType === "file" && values.file) {
-           toast({ title: "Processing uploaded file..." });
-          // Simulate processing for file upload
-          await new Promise(resolve => setTimeout(resolve, 1500));
+           fetchSource = "File";
+           toast({ title: "Processing uploaded .sb3 file..." });
+          // Simulate processing for file upload (replace with actual parsing if needed)
+          await new Promise(resolve => setTimeout(resolve, 500)); // Short delay simulation
           scratchProject = {
+             id: 'local-file', // Placeholder ID for file uploads
              name: values.file.name.replace('.sb3', ''),
-             description: "Project uploaded from file.",
-             resources: ["sprite1.png", "background.jpg", "sound.mp3"], // Placeholder resources
+             description: "Project uploaded from file.", // Placeholder description
+             resources: [], // Placeholder resources - could be extracted by parsing sb3
            };
-           toast({ title: "File processed.", description: `Name: ${scratchProject.name}` });
+           // You have the file object here: values.file
+           // TODO: Process the uploaded file (values.file) if needed.
+           console.log(`Processing uploaded SB3 file: ${values.file.name}, size: ${values.file.size} bytes.`);
+           toast({ title: "File processed.", description: `Project: ${scratchProject.name}` });
         } else {
           throw new Error("Invalid import method or missing data.");
         }
 
-        // Simulate AI call failure since Genkit is removed
-        toast({ title: "Generating tutorial steps (Simulated Failure)..." });
+        // --- AI Generation Simulation (currently disabled) ---
+        toast({ title: "Generating tutorial steps (Mock Data)..." });
         await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate delay
-        // throw new Error("AI functionality disabled: Genkit dependencies removed.");
 
         // --- Provide Mock Data instead of calling AI ---
         const mockTutorialResult: GenerateTutorialStepsOutput = {
           tutorialSteps: [
             {
-              functionality: "Basic Setup (Mock Data)",
-              steps: ["Open Scratch", "Create a new sprite", "Choose a backdrop"]
+              functionality: "Getting Started (Mock Data)",
+              steps: ["Open the Scratch editor.", "Find the green flag.", "Click the green flag to start."]
             },
             {
-              functionality: "Movement (Mock Data)",
-              steps: ["Add 'when green flag clicked' block", "Add 'move 10 steps' block", "Add 'if on edge, bounce' block"]
+              functionality: "Making the Cat Move (Mock Data)",
+              steps: ["Select the Cat sprite.", "Go to the 'Motion' blocks category.", "Drag out a 'move 10 steps' block.", "Click the block to make the cat move."]
+            },
+            {
+              functionality: "Adding Sound (Mock Data)",
+              steps: ["Go to the 'Sound' blocks category.", "Drag out a 'play sound Meow until done' block.", "Attach it under the 'move 10 steps' block."]
             }
           ]
         };
@@ -115,24 +132,25 @@ export function ImportForm() {
             data: {
                 projectName: scratchProject.name,
                 projectDescription: scratchProject.description,
-                resources: scratchProject.resources,
+                // Use actual resources if parsed, otherwise keep placeholder
+                resources: scratchProject.resources.length > 0 ? scratchProject.resources : ['sprite1', 'backdrop1'], // Example placeholder if empty
                 tutorialSteps: mockTutorialResult.tutorialSteps, // Use mock data
             },
             error: null,
         });
         toast({
             title: "Tutorial Generated (Using Mock Data)",
-            description: "Scroll down to view the mock tutorial.",
+            description: `Based on project: ${scratchProject.name}`,
         });
 
 
       } catch (error) {
-        console.error("Error during import/generation process:", error);
+        console.error(`Error during ${values.importType} import/generation process:`, error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         setTutorialData({ status: "error", data: null, error: errorMessage });
         toast({
-          title: "Error",
-          description: `Failed to process project: ${errorMessage}`,
+          title: "Error Processing Project",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -147,6 +165,9 @@ export function ImportForm() {
              setActiveTab(value);
              form.setValue("importType", value as "url" | "file");
              form.clearErrors(); // Clear errors when switching tabs
+             // Clear the other field's value
+             if (value === 'url') form.setValue('file', undefined);
+             if (value === 'file') form.setValue('url', '');
             }} defaultValue="url" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="url"><Link2 className="mr-2 h-4 w-4" /> Import from URL</TabsTrigger>
@@ -163,15 +184,16 @@ export function ImportForm() {
                     <Input
                       placeholder="https://scratch.mit.edu/projects/..."
                       {...field}
+                      value={field.value ?? ''} // Ensure value is controlled
                       disabled={isPending || activeTab !== 'url'}
                       onChange={(e) => {
                         field.onChange(e);
-                        if (e.target.value) form.setValue("file", undefined); // Clear file if URL is entered
+                        if (e.target.value) form.setValue("file", undefined); // Clear file if URL is typed
                       }}
                     />
                   </FormControl>
                   <FormDescription>
-                    Enter the URL of the public Scratch project.
+                    Enter the URL of a public Scratch project (e.g., from scratch.mit.edu or turbowarp.org).
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -181,8 +203,9 @@ export function ImportForm() {
           <TabsContent value="file">
             <FormField
               control={form.control}
+              // Use a different key for the file input component if needed, but name should be 'file'
               name="file"
-              render={({ field }) => (
+              render={({ field: { onChange, onBlur, name, ref } }) => ( // Destructure carefully for file input
                 <FormItem>
                   <FormLabel>Scratch Project File (.sb3)</FormLabel>
                   <FormControl>
@@ -192,10 +215,12 @@ export function ImportForm() {
                       disabled={isPending || activeTab !== 'file'}
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        field.onChange(file);
-                         if (file) form.setValue("url", undefined); // Clear URL if file is selected
+                        onChange(file); // RHF's onChange for file input
+                        if (file) form.setValue("url", ''); // Clear URL if file is selected
                       }}
-                      // We don't use {...field} directly for file inputs due to value control complexities
+                      onBlur={onBlur}
+                      name={name}
+                      ref={ref}
                     />
                   </FormControl>
                   <FormDescription>
@@ -212,7 +237,7 @@ export function ImportForm() {
           {isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
+              Processing...
             </>
           ) : (
             "Generate Tutorial"
