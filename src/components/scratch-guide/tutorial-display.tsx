@@ -111,9 +111,15 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
 
         const loadPreview = async () => {
             if (!assetInfo || !uploadedFile) {
-                 // Don't set error if just initially missing file
-                 // setError("Project file missing");
                  return;
+            }
+
+            // Skip blob loading for SVG, we'll show an icon directly
+            if (assetInfo.dataFormat === 'svg') {
+                setPreviewUrl(null); // Ensure no previous image tries to render
+                setIsLoading(false);
+                setError(null);
+                return;
             }
 
             setIsLoading(true);
@@ -142,8 +148,6 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                  if (!isMounted) return;
                  const message = err instanceof Error ? err.message : "Load failed";
                  setError(message);
-                // Optionally show a toast, but could be noisy in a table
-                // toast({ title: "Preview Error", description: `${assetInfo.name}: ${message}`, variant: "destructive" });
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -158,13 +162,22 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
             isMounted = false; // Set flag on unmount
             if (objectUrl) {
                 URL.revokeObjectURL(objectUrl);
-                // console.log(`Revoked URL for ${assetInfo?.name}`);
             }
             setPreviewUrl(null); // Clear preview on unmount or re-render
         };
      // eslint-disable-next-line react-hooks/exhaustive-deps
-     }, [assetInfo.md5ext, uploadedFile]); // Rerun only when asset md5ext or file changes
+     }, [assetInfo.md5ext, assetInfo.dataFormat, uploadedFile]); // Rerun if asset changes
 
+
+    // Specific handling for SVG: show an icon
+    if (assetInfo.dataFormat === 'svg') {
+        return (
+            <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50" title={`SVG: ${assetInfo.name}`}>
+                 {/* Using a simple inline SVG icon as placeholder */}
+                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="15" r="2"/><path d="m20 17-1.09-1.09a2 2 0 0 0-2.82 0L10 22"/></svg>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return <Skeleton className="h-10 w-10 rounded" />;
@@ -178,20 +191,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
 
     if (previewUrl) {
         if (assetInfo.type === 'image') {
-            // Use standard img tag for SVGs from blob URLs
-            if (assetInfo.dataFormat === 'svg') {
-                return (
-                    <img
-                        src={previewUrl}
-                        alt={`Preview of ${assetInfo.name}`}
-                        width={40}
-                        height={40}
-                        style={{ objectFit: 'contain', borderRadius: '4px', border: '1px solid hsl(var(--border))' }}
-                        className="bg-white" // Add white background for transparent SVGs
-                    />
-                );
-            }
-            // Use Next Image for other image types
+             // Use Next Image for non-SVG images
             return (
                 <Image
                     src={previewUrl}
@@ -200,7 +200,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                     height={40}
                     style={{ objectFit: 'contain', borderRadius: '4px' }}
                     unoptimized // Necessary for blob URLs
-                    className="border"
+                    className="border bg-white" // Added white background for transparency
                 />
             );
         }
@@ -216,7 +216,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
         }
     }
 
-     // Fallback or if asset type is unknown or previewUrl is null
+     // Fallback or if asset type is unknown or previewUrl is null (and not SVG)
     return <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50">
              <FileText className="h-5 w-5 text-muted-foreground" />
            </div>;
@@ -292,7 +292,8 @@ export function TutorialDisplay() {
         }
     };
 
-    const handleDownloadAllAssets = async () => {
+    const handleDownloadAllAssets = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation(); // Prevent accordion from toggling
         if (!uploadedFile || tutorialState.status !== 'success' || !tutorialState.data?.assets || tutorialState.data.assets.length === 0) {
             toast({ title: "No Assets", description: "No assets found to download or project not loaded.", variant: "destructive" });
             return;
@@ -330,19 +331,41 @@ export function TutorialDisplay() {
         }
     };
 
-    // Group assets by type
-    const groupedAssets = React.useMemo(() => {
+     // Group assets by file extension, prioritizing non-SVG images, then SVG, then sounds
+    const groupedAssetsByExtension = React.useMemo(() => {
         if (tutorialState.status !== 'success' || !tutorialState.data?.assets) {
-            return { image: [], sound: [] };
+            return {};
         }
-        return tutorialState.data.assets.reduce((acc, asset) => {
-            const typeKey = asset.type === 'image' ? 'image' : 'sound'; // Ensure only 'image' or 'sound' keys
-            if (!acc[typeKey]) { // Initialize if it doesn't exist
-                acc[typeKey] = [];
+        const groups = tutorialState.data.assets.reduce((acc, asset) => {
+            const extension = asset.dataFormat.toLowerCase() || 'unknown';
+            if (!acc[extension]) {
+                acc[extension] = [];
             }
-            acc[typeKey].push(asset);
+            acc[extension].push(asset);
             return acc;
-        }, { image: [] as AssetInfo[], sound: [] as AssetInfo[] }); // Explicitly type the initial accumulator
+        }, {} as Record<string, AssetInfo[]>);
+
+        // Define order: non-SVG images, SVG, sounds, others
+        const desiredOrder = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg', 'wav', 'mp3'];
+
+        // Sort the keys based on the desired order
+        const sortedKeys = Object.keys(groups).sort((a, b) => {
+            const indexA = desiredOrder.indexOf(a);
+            const indexB = desiredOrder.indexOf(b);
+
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both are in desired order
+            if (indexA !== -1) return -1; // A is in desired order, B is not
+            if (indexB !== -1) return 1;  // B is in desired order, A is not
+            return a.localeCompare(b); // Neither in desired order, sort alphabetically
+        });
+
+        // Create a new object with sorted keys
+        const sortedGroups: Record<string, AssetInfo[]> = {};
+        sortedKeys.forEach(key => {
+            sortedGroups[key] = groups[key];
+        });
+
+        return sortedGroups;
     }, [tutorialState.data?.assets, tutorialState.status]);
 
 
@@ -432,27 +455,47 @@ export function TutorialDisplay() {
                      {hasAssets && (
                          <>
                             <Separator />
-                             <Accordion type="single" collapsible className="w-full">
+                             <Accordion type="single" collapsible className="w-full" defaultValue={undefined}> {/* Default to collapsed */}
                                  <AccordionItem value="project-assets" className="border-b-0">
-                                    <AccordionTrigger className="text-lg font-medium hover:no-underline py-4 text-left flex items-center gap-2">
-                                         <ListTree className="h-5 w-5 text-primary" /> Project Assets ({assets.length})
-                                    </AccordionTrigger>
+                                    {/* Modified AccordionTrigger to include Download All button */}
+                                    <div className="flex justify-between items-center w-full py-4">
+                                        <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
+                                             <ListTree className="h-5 w-5 text-primary" /> Project Assets ({assets.length})
+                                        </AccordionTrigger>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={handleDownloadAllAssets}
+                                            disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
+                                            title="Download All Assets (.zip)"
+                                            className="ml-2 h-8 w-8 flex-shrink-0"
+                                            aria-label="Download All Assets"
+                                        >
+                                             {isDownloadingAll ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Package className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </div>
                                     <AccordionContent className="pt-2 pb-4 px-1 space-y-4">
-                                        {/* Image Assets Table */}
-                                         {groupedAssets.image.length > 0 && (
-                                             <div className="mb-4">
-                                                <h4 className="text-md font-medium mb-2 flex items-center gap-1.5"><ImageIcon className="h-4 w-4"/> Images ({groupedAssets.image.length})</h4>
+                                        {Object.entries(groupedAssetsByExtension).map(([extension, assetList]) => (
+                                            <div key={extension} className="mb-4">
+                                                <h4 className="text-md font-medium mb-2 flex items-center gap-1.5">
+                                                    {assetList[0].type === 'image' ? <ImageIcon className="h-4 w-4"/> : <Music className="h-4 w-4"/>}
+                                                    {extension.toUpperCase()} Files ({assetList.length})
+                                                </h4>
                                                 <Table>
                                                     <TableHeader>
                                                         <TableRow>
-                                                            <TableHead className="w-[50px]">Preview</TableHead> {/* Preview Column */}
+                                                            <TableHead className="w-[50px]">Preview</TableHead>
                                                             <TableHead className="w-[150px]">Name</TableHead>
                                                             <TableHead>Filename</TableHead>
-                                                            <TableHead className="text-right w-[60px]">Download</TableHead> {/* Actions -> Download */}
+                                                            <TableHead className="text-right w-[60px]">Download</TableHead>
                                                         </TableRow>
                                                     </TableHeader>
                                                     <TableBody>
-                                                        {groupedAssets.image.map((asset) => (
+                                                        {assetList.map((asset) => (
                                                             <TableRow key={asset.md5ext}>
                                                                  <TableCell>
                                                                     <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
@@ -460,7 +503,6 @@ export function TutorialDisplay() {
                                                                 <TableCell className="font-medium truncate max-w-[150px]" title={asset.name}>{asset.name}</TableCell>
                                                                 <TableCell className="text-muted-foreground truncate max-w-[200px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
                                                                 <TableCell className="text-right">
-                                                                     {/* Keep only Download button */}
                                                                      <Button
                                                                         variant="ghost"
                                                                         size="icon"
@@ -481,71 +523,7 @@ export function TutorialDisplay() {
                                                     </TableBody>
                                                 </Table>
                                             </div>
-                                         )}
-
-                                         {/* Sound Assets Table */}
-                                         {groupedAssets.sound.length > 0 && (
-                                             <div className="mb-4">
-                                                <h4 className="text-md font-medium mb-2 flex items-center gap-1.5"><Music className="h-4 w-4"/> Sounds ({groupedAssets.sound.length})</h4>
-                                                <Table>
-                                                     <TableHeader>
-                                                        <TableRow>
-                                                             <TableHead className="w-[120px]">Preview</TableHead> {/* Preview Column */}
-                                                            <TableHead className="w-[150px]">Name</TableHead>
-                                                            <TableHead>Filename</TableHead>
-                                                             <TableHead className="text-right w-[60px]">Download</TableHead> {/* Actions -> Download */}
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {groupedAssets.sound.map((asset) => (
-                                                            <TableRow key={asset.md5ext}>
-                                                                 <TableCell>
-                                                                    <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
-                                                                </TableCell>
-                                                                <TableCell className="font-medium truncate max-w-[150px]" title={asset.name}>{asset.name}</TableCell>
-                                                                <TableCell className="text-muted-foreground truncate max-w-[200px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
-                                                                 <TableCell className="text-right">
-                                                                     {/* Keep only Download button */}
-                                                                     <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        onClick={() => handleDownloadSingleAsset(asset.md5ext, asset.name)}
-                                                                        disabled={!uploadedFile || isDownloadingSingle === asset.md5ext || isDownloadingAll}
-                                                                        title={`Download ${asset.name}`}
-                                                                         className="h-8 w-8"
-                                                                    >
-                                                                         {isDownloadingSingle === asset.md5ext ? (
-                                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                                        ) : (
-                                                                            <Download className="h-4 w-4" />
-                                                                        )}
-                                                                    </Button>
-                                                                </TableCell>
-                                                            </TableRow>
-                                                        ))}
-                                                    </TableBody>
-                                                </Table>
-                                            </div>
-                                         )}
-
-                                        {/* Download All Button */}
-                                        <Button
-                                            onClick={handleDownloadAllAssets}
-                                            disabled={!uploadedFile || isDownloadingAll || isDownloadingSingle !== null}
-                                            className="mt-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground"
-                                        >
-                                            {isDownloadingAll ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    Zipping...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Package className="mr-2 h-4 w-4" />
-                                                    Download All Assets (.zip)
-                                                </>
-                                            )}
-                                        </Button>
+                                        ))}
                                     </AccordionContent>
                                 </AccordionItem>
                             </Accordion>
@@ -622,8 +600,6 @@ export function TutorialDisplay() {
                      <div></div>
                 </CardFooter>
             </Card>
-
-             {/* Removed Asset Preview Dialog */}
             </>
         );
     }
