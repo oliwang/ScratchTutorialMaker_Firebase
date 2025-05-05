@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAtom } from "jotai";
@@ -21,10 +22,11 @@ import { Button } from "@/components/ui/button";
 import { exportToGoogleDocs } from "@/services/google-docs";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen } from "lucide-react";
+import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen, Loader2 } from "lucide-react"; // Added Loader2
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import Image from 'next/image';
+import * as React from 'react'; // Ensure React is imported for useState
 
 // Helper to determine resource type icon
 const getResourceIcon = (resourceName: string) => {
@@ -103,31 +105,8 @@ export function TutorialDisplay() {
         }
     };
 
-    if (tutorialState.status === "idle") {
-        return (
-            <Card className="bg-card border border-border shadow-sm">
-                 <CardHeader>
-                    <CardTitle className="flex items-center text-primary">
-                       <BookOpen className="mr-2 h-5 w-5"/> Your Tutorial Will Appear Here
-                    </CardTitle>
-                    <CardDescription>Import a Scratch project using the form above to generate a tutorial.</CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <div className="flex flex-col items-center justify-center text-center py-12">
-                       <Image
-                            src="https://picsum.photos/seed/coding-learn/300/200"
-                            alt="Illustration showing learning or coding"
-                            width={300}
-                            height={200}
-                            className="rounded-lg mb-4 shadow-md"
-                            data-ai-hint="learning coding illustration"
-                        />
-                        <p className="text-muted-foreground">Ready to break down your Scratch creation?</p>
-                    </div>
-                </CardContent>
-            </Card>
-        );
-    }
+    // Removed the 'idle' state check, as this component won't render in that state anymore.
+    // if (tutorialState.status === "idle") { ... }
 
     if (tutorialState.status === "loading") {
         return (
@@ -137,8 +116,10 @@ export function TutorialDisplay() {
                      <Skeleton className="h-4 w-1/2 mt-1" />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="ml-3 text-muted-foreground">Generating tutorial...</p>
+                    </div>
                     <Separator className="my-4"/>
                      <Skeleton className="h-5 w-1/4 mb-2" />
                      <div className="flex flex-wrap gap-2">
@@ -247,9 +228,6 @@ export function TutorialDisplay() {
         );
     }
 
-    // Should not be reached, but provides a fallback
+    // Should not be reached if logic in page.tsx is correct, but provides a fallback
     return null;
 }
-
-// Need to add React for useState and types
-import * as React from 'react';
