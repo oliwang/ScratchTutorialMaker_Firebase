@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useTransition } from "react";
 import { useAtom } from "jotai";
+import JSZip from "jszip"; // Import JSZip
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,15 +19,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Removed Tabs
 import { useToast } from "@/hooks/use-toast";
 import { tutorialDataAtom } from "@/store/atoms";
-// import { summarizeScratchProject } from "@/ai/flows/summarize-scratch-project"; // Removed
-// import { generateTutorialSteps } from "@/ai/flows/generate-tutorial-steps"; // Removed
-// import { getScratchProjectFromUrl } from "@/services/scratch"; // Removed URL fetch
 import type { ScratchProject } from "@/services/scratch";
-// import type { GenerateTutorialStepsOutput } from "@/ai/flows/generate-tutorial-steps"; // Removed
-import { Loader2, Upload } from "lucide-react"; // Removed Link2
+import { Loader2, Upload } from "lucide-react";
 
 // Mock GenerateTutorialStepsOutput type since the flow is removed
 interface GenerateTutorialStepsOutput {
@@ -35,7 +31,6 @@ interface GenerateTutorialStepsOutput {
 
 
 const formSchema = z.object({
-  // Removed importType and url
   file: z.instanceof(File).refine(file => file.size > 0, { message: "Please upload an .sb3 file." })
     .refine(file => file.name.endsWith('.sb3'), { message: "File must be an .sb3 file."})
     .refine(file => file.size < 50 * 1024 * 1024, { message: "File size must be less than 50MB."}), // Optional: Add size limit
@@ -45,12 +40,10 @@ export function ImportForm() {
   const [isPending, startTransition] = useTransition();
   const [, setTutorialData] = useAtom(tutorialDataAtom);
   const { toast } = useToast();
-  // const [activeTab, setActiveTab] = useState("file"); // Removed activeTab state
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      // Removed url and importType defaults
       file: undefined,
     },
   });
@@ -60,26 +53,42 @@ export function ImportForm() {
       setTutorialData({ status: "loading", data: null, error: null });
       try {
         let scratchProject: ScratchProject;
-        // let fetchSource = ""; // Removed
-        // let sb3FileBlob: Blob | null = null; // Removed
+        let projectJson: any = null; // To store parsed project.json
 
-        // Only handle file upload now
         if (values.file) {
-           // fetchSource = "File"; // Removed
-           toast({ title: "Processing uploaded .sb3 file..." });
-          // Simulate processing for file upload (replace with actual parsing if needed)
-          // In a real scenario, you might parse the file here to extract more data
-          await new Promise(resolve => setTimeout(resolve, 500)); // Short delay simulation
-          scratchProject = {
-             id: `local-${values.file.name}-${values.file.lastModified}`, // More unique placeholder ID
-             name: values.file.name.replace('.sb3', ''),
-             description: "Project uploaded from file.", // Placeholder description
-             resources: [], // Placeholder resources - could be extracted by parsing sb3
-           };
-           // You have the file object here: values.file
-           // TODO: Process the uploaded file (values.file) if needed (e.g., parse for resources).
+           toast({ title: "Reading .sb3 file..." });
            console.log(`Processing uploaded SB3 file: ${values.file.name}, size: ${values.file.size} bytes.`);
-           toast({ title: "File processed.", description: `Project: ${scratchProject.name}` });
+
+           // Use JSZip to read the project.json file
+           try {
+             const zip = await JSZip.loadAsync(values.file);
+             const projectJsonFile = zip.file('project.json');
+
+             if (projectJsonFile) {
+               const projectJsonContent = await projectJsonFile.async('string');
+               projectJson = JSON.parse(projectJsonContent);
+               console.log("Successfully parsed project.json:", projectJson);
+               toast({ title: "Project data extracted.", description: "Found project.json within the .sb3 file." });
+             } else {
+               throw new Error("project.json not found in the .sb3 file.");
+             }
+           } catch (zipError) {
+             console.error("Error reading or parsing .sb3 file:", zipError);
+             const zipErrorMessage = zipError instanceof Error ? zipError.message : "Failed to read the .sb3 file content.";
+             throw new Error(`Error processing .sb3 file: ${zipErrorMessage}`);
+           }
+
+          // Create scratch project object (use file name as fallback)
+          scratchProject = {
+             id: `local-${values.file.name}-${values.file.lastModified}`,
+             name: values.file.name.replace('.sb3', ''),
+             // Attempt to get description from project.json if available, otherwise use default
+             // Note: Scratch project description is usually fetched from API, project.json doesn't typically store it.
+             description: "Project uploaded from file.", // Keeping placeholder description
+             // Resources can potentially be extracted from project.json (e.g., costumes, sounds), but complex.
+             resources: [], // Keeping placeholder resources
+           };
+
         } else {
           // This case should ideally be prevented by the form validation
           throw new Error("No .sb3 file provided.");
@@ -145,11 +154,8 @@ export function ImportForm() {
             <Upload className="h-6 w-6"/> Upload Scratch Project
         </h2>
 
-        {/* Removed Tabs component */}
-
         <FormField
           control={form.control}
-          // Use a different key for the file input component if needed, but name should be 'file'
           name="file"
           render={({ field: { onChange, onBlur, name, ref } }) => ( // Destructure carefully for file input
             <FormItem>
