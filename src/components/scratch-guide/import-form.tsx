@@ -54,6 +54,7 @@ export function ImportForm() {
       try {
         let scratchProject: ScratchProject;
         let projectJson: any = null; // To store parsed project.json
+        let projectJsonContent: string | null = null; // To store raw project.json string
 
         if (values.file) {
            toast({ title: "Reading .sb3 file..." });
@@ -65,8 +66,8 @@ export function ImportForm() {
              const projectJsonFile = zip.file('project.json');
 
              if (projectJsonFile) {
-               const projectJsonContent = await projectJsonFile.async('string');
-               projectJson = JSON.parse(projectJsonContent);
+               projectJsonContent = await projectJsonFile.async('string'); // Store raw string
+               projectJson = JSON.parse(projectJsonContent); // Parse for potential future use
                console.log("Successfully parsed project.json:", projectJson);
                toast({ title: "Project data extracted.", description: "Found project.json within the .sb3 file." });
              } else {
@@ -125,6 +126,7 @@ export function ImportForm() {
                 // Use actual resources if parsed, otherwise keep placeholder
                 resources: scratchProject.resources.length > 0 ? scratchProject.resources : ['sprite1', 'sound1', 'backdrop1'], // Example placeholder if empty
                 tutorialSteps: mockTutorialResult.tutorialSteps, // Use mock data
+                projectJsonContent: projectJsonContent, // Store the raw JSON content string
             },
             error: null,
         });

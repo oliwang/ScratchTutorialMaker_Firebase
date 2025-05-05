@@ -12,6 +12,7 @@ interface TutorialData {
     projectDescription: string;
     resources: string[];
     tutorialSteps: TutorialStepSection[]; // Use locally defined type
+    projectJsonContent: string | null; // Add field to store project.json content
 }
 
 type TutorialState = {

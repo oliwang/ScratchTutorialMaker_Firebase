@@ -22,11 +22,12 @@ import { Button } from "@/components/ui/button";
 import { exportToGoogleDocs } from "@/services/google-docs";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen, Loader2 } from "lucide-react"; // Added Loader2
+import { AlertCircle, FileText, Image as ImageIcon, Music, DownloadCloud, BookOpen, Loader2, FileJson } from "lucide-react"; // Added Loader2, FileJson
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import Image from 'next/image';
 import * as React from 'react'; // Ensure React is imported for useState
+import { ScrollArea } from "@/components/ui/scroll-area"; // Import ScrollArea
 
 // Helper to determine resource type icon
 const getResourceIcon = (resourceName: string) => {
@@ -59,6 +60,14 @@ const formatTutorialForExport = (data: NonNullable<ReturnType<typeof useAtom<typ
         });
         content += '\n';
     });
+
+     // Optionally include project.json content in export
+     if (data.projectJsonContent) {
+        content += `--- Project.json Content ---\n\n`;
+        content += data.projectJsonContent;
+        content += '\n\n--- End Project.json Content ---\n';
+     }
+
 
     return content;
 };
@@ -132,6 +141,8 @@ export function TutorialDisplay() {
                      <Skeleton className="h-10 w-full" />
                      <Skeleton className="h-10 w-full" />
                      <Skeleton className="h-10 w-full" />
+                     <Separator className="my-4"/>
+                     <Skeleton className="h-10 w-full" /> {/* Skeleton for project.json */}
                 </CardContent>
                  <CardFooter>
                     <Skeleton className="h-10 w-36" />
@@ -154,7 +165,7 @@ export function TutorialDisplay() {
 
 
     if (tutorialState.status === "success" && tutorialState.data) {
-        const { projectName, projectDescription, resources, tutorialSteps } = tutorialState.data;
+        const { projectName, projectDescription, resources, tutorialSteps, projectJsonContent } = tutorialState.data;
         return (
             <Card className="bg-card border border-border shadow-lg transition-all duration-300 ease-in-out animate-in fade-in-50">
                 <CardHeader>
@@ -204,6 +215,28 @@ export function TutorialDisplay() {
                             <p className="text-sm text-muted-foreground italic">No tutorial steps generated.</p>
                         )}
                     </div>
+
+                     {/* project.json display section */}
+                    {projectJsonContent && (
+                        <>
+                             <Separator />
+                             <Accordion type="single" collapsible className="w-full">
+                                <AccordionItem value="project-json" className="border-b border-border">
+                                    <AccordionTrigger className="text-base font-medium hover:no-underline py-4 text-left flex items-center gap-2">
+                                         <FileJson className="h-5 w-5 text-primary" /> Project.json Content
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-2 pb-4 px-1">
+                                        <ScrollArea className="h-72 w-full rounded-md border bg-muted/50 p-4">
+                                            <pre className="text-sm whitespace-pre-wrap break-words">
+                                                {projectJsonContent}
+                                            </pre>
+                                        </ScrollArea>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            </Accordion>
+                        </>
+                    )}
+
                 </CardContent>
                  <CardFooter>
                     <Button
