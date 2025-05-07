@@ -1,10 +1,9 @@
-
 "use client"; // Add this directive because we are using hooks (useAtom)
 
 import { useAtom } from "jotai";
 import { Header } from "@/components/layout/header";
 import { ImportForm } from "@/components/scratch-guide/import-form";
-import { TutorialDisplay } from "@/components/scratch-guide/tutorial-display";
+import { CombinedAnalysis } from "@/components/scratch-guide/combined-analysis";
 import { Card, CardContent } from "@/components/ui/card";
 import { tutorialDataAtom } from "@/store/atoms"; // Import the atom
 
@@ -20,8 +19,15 @@ export default function Home() {
             <ImportForm />
           </CardContent>
         </Card>
-        {/* Conditionally render TutorialDisplay only if status is not 'idle' */}
-        {tutorialState.status !== 'idle' && <TutorialDisplay />}
+        
+        {/* Show combined analysis when project is loaded */}
+        {tutorialState.status !== 'idle' && (
+          <Card>
+            <CardContent className="p-6">
+              <CombinedAnalysis />
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );

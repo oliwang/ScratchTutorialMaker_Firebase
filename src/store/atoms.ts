@@ -21,6 +21,7 @@ interface TutorialData {
     tutorialSteps: TutorialStepSection[]; // Use locally defined type
     projectJsonContent: string | null; // Add field to store project.json content
     assets: AssetInfo[]; // Add field for extracted assets
+    llmAnalysis?: string; // Full analysis text from LLM
 }
 
 type TutorialState = {
