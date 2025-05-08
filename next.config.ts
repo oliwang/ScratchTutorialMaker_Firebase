@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  devIndicators: false,
   // Removed webpack configuration for 'async_hooks'
   // webpack: (config, { isServer }) => {
   //   if (!isServer) {

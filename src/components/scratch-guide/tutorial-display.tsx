@@ -33,6 +33,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import ScratchBlocks from "./blocks";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+
 // Helper to determine resource type icon
 const getAssetIcon = (assetType: 'image' | 'sound') => {
     if (assetType === 'image') {
@@ -116,7 +117,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                 
                 const zip = await JSZip.loadAsync(uploadedFile);
                 const assetFile = zip.file(assetInfo.md5ext);
-                console.log(assetInfo, assetFile);
+                // //console.log(assetInfo, assetFile);
 
                 if (!assetFile) {
                     throw new Error(`Asset file not found in zip`);
@@ -156,7 +157,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                     setPreviewUrl(objectUrl);
                 }
                 
-                console.log(assetInfo.dataFormat, objectUrl);
+                //console.log(assetInfo.dataFormat, objectUrl);
 
             } catch (err) {
                  console.error(`Error loading preview for ${assetInfo.name} (${assetInfo.md5ext}):`, err);
@@ -197,7 +198,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
     }
 
     if (previewUrl) {
-        console.log(assetInfo.type, previewUrl);
+        //console.log(assetInfo.type, previewUrl);
         if (assetInfo.type === 'image') {
             // Check if the file is an SVG
             const isSvg = assetInfo.dataFormat === 'svg' || 
@@ -418,6 +419,59 @@ export function TutorialDisplay() {
         return sortedGroups;
     }, [tutorialState.data?.assets, tutorialState.status]);
 
+    const handleDownloadSpriteAssets = async (spriteData: any, spriteName: string) => {
+        if (!uploadedFile) {
+            toast({ title: "Error", description: "Uploaded project file not found.", variant: "destructive" });
+            return;
+        }
+        
+        const assets = [...spriteData.costumes, ...spriteData.sounds];
+        if (assets.length === 0) {
+            toast({ title: "No Assets", description: `No assets found for ${spriteName}.`, variant: "destructive" });
+            return;
+        }
+        
+        toast({ title: "Preparing Download", description: `Zipping assets for ${spriteName}...` });
+        
+        try {
+            const inputZip = await JSZip.loadAsync(uploadedFile);
+            const outputZip = new JSZip();
+            
+            // Create folders for organization
+            const costumesFolder = outputZip.folder("costumes");
+            const soundsFolder = outputZip.folder("sounds");
+            
+            // Add costumes to zip
+            for (const costume of spriteData.costumes) {
+                const assetFile = inputZip.file(costume.md5ext);
+                if (assetFile) {
+                    const extension = costume.dataFormat || costume.md5ext.split('.').pop() || 'bin';
+                    const friendlyName = costume.name.replace(/[^a-zA-Z0-9_-]/g, '_') || costume.md5ext.split('.')[0];
+                    costumesFolder?.file(`${friendlyName}.${extension}`, assetFile.async('blob'));
+                }
+            }
+            
+            // Add sounds to zip
+            for (const sound of spriteData.sounds) {
+                const assetFile = inputZip.file(sound.md5ext);
+                if (assetFile) {
+                    const extension = sound.dataFormat || sound.md5ext.split('.').pop() || 'bin';
+                    const friendlyName = sound.name.replace(/[^a-zA-Z0-9_-]/g, '_') || sound.md5ext.split('.')[0];
+                    soundsFolder?.file(`${friendlyName}.${extension}`, assetFile.async('blob'));
+                }
+            }
+            
+            const zipBlob = await outputZip.generateAsync({ type: "blob" });
+            const safeSpriteName = spriteName.replace(/[^a-zA-Z0-9_-]/g, '_');
+            downloadBlob(zipBlob, `${safeSpriteName}_assets.zip`);
+            toast({ title: "Download Started", description: `Downloading assets for ${spriteName}.` });
+            
+        } catch (error) {
+            console.error(`Error creating zip for ${spriteName} assets:`, error);
+            const errorMessage = error instanceof Error ? error.message : "Could not create zip file.";
+            toast({ title: "Download Failed", description: errorMessage, variant: "destructive" });
+        }
+    };
 
     // --- Loading State ---
     if (tutorialState.status === "loading") {
@@ -498,7 +552,7 @@ export function TutorialDisplay() {
                                 <h3 className="text-lg font-medium mb-3 text-foreground">Project Metadata Resources</h3>
                                 <div className="flex flex-wrap gap-2">
                                     {resources.map((resource, index) => (
-                                        <Badge key={index} variant="secondary" className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
+                                        <Badge key={`resource-${index}`} variant="secondary" className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
                                             <FileText className="h-4 w-4 text-muted-foreground" />
                                             {resource}
                                         </Badge>
@@ -508,13 +562,13 @@ export function TutorialDisplay() {
                         </>
                     )}
 
-                    {/* Parsed Blocks Section collapsible*/}
+                    {/* Project Components Section collapsible*/}
                     <Separator />
                     <Accordion type="single" collapsible className="w-full" defaultValue={undefined}>
                         <AccordionItem value="parsed-blocks" className="border-b-0">
                             <div className="flex justify-between items-center w-full py-4">
                                 <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
-                                    <FileJson className="h-5 w-5 text-primary" /> Parsed Blocks
+                                    <FileJson className="h-5 w-5 text-primary" /> Project Components
                                 </AccordionTrigger>
                             </div>
                             <AccordionContent className="pt-2 pb-4 px-1">
@@ -525,7 +579,7 @@ export function TutorialDisplay() {
                                                 <TabsList className="inline-flex w-max">
                                                     <TabsTrigger value="stage">{tutorialState.data.parsedBlocks.stage.name}</TabsTrigger>
                                                     {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
-                                                        <TabsTrigger key={sprite.name} value={sprite.name}>{sprite.name}</TabsTrigger>
+                                                        <TabsTrigger key={`sprite-tab-${sprite.name}`} value={sprite.name}>{sprite.name}</TabsTrigger>
                                                     ))}
                                                 </TabsList>
                                             </div>
@@ -533,11 +587,24 @@ export function TutorialDisplay() {
                                         
                                         {/* Stage Content */}
                                         <TabsContent value="stage" className="space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-lg font-medium">Stage Assets</h3>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => tutorialState.data && handleDownloadSpriteAssets(tutorialState.data.parsedBlocks.stage, 'stage')}
+                                                    disabled={!uploadedFile}
+                                                    className="flex items-center gap-1.5"
+                                                >
+                                                    <Package className="h-4 w-4" />
+                                                    Download Assets
+                                                </Button>
+                                            </div>
                                             <div>
                                                 <h3 className="text-lg font-medium mb-2">Costumes</h3>
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.costumes.map((costume) => (
-                                                        <div key={costume.md5ext + "-parsedblocks"} className="flex flex-col items-center">
+                                                        <div key={`stage-costume-${costume.md5ext}`} className="flex flex-col items-center">
                                                             <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                 <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                             </div>
@@ -551,7 +618,7 @@ export function TutorialDisplay() {
                                                 <h3 className="text-lg font-medium mb-2">Sounds</h3>
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.sounds.map((sound) => (
-                                                        <div key={sound.md5ext + "-parsedblocks"} className="flex flex-col items-center">
+                                                        <div key={`stage-sound-${sound.md5ext}`} className="flex flex-col items-center">
                                                             <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
                                                                 <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
                                                             </div>
@@ -564,8 +631,8 @@ export function TutorialDisplay() {
                                             <div>
                                                 <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
                                                 <div className="space-y-4">
-                                                    {tutorialState.data.parsedBlocks.stage.blocks.map((codeblock) => (
-                                                        <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock + "-parsedblocks"}>
+                                                    {tutorialState.data.parsedBlocks.stage.blocks.map((codeblock, blockIndex) => (
+                                                        <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={`stage-codeblock-${blockIndex}`}>
                                                             {codeblock}
                                                         </ScratchBlocks>
                                                     ))}
@@ -575,12 +642,25 @@ export function TutorialDisplay() {
                                         
                                         {/* Sprite Contents */}
                                         {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
-                                            <TabsContent key={sprite.name} value={sprite.name} className="space-y-6">
+                                            <TabsContent key={`sprite-content-${sprite.name}`} value={sprite.name} className="space-y-6">
+                                                <div className="flex justify-between items-center">
+                                                    <h3 className="text-lg font-medium">{sprite.name} Assets</h3>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleDownloadSpriteAssets(sprite, sprite.name)}
+                                                        disabled={!uploadedFile}
+                                                        className="flex items-center gap-1.5"
+                                                    >
+                                                        <Package className="h-4 w-4" />
+                                                        Download Assets
+                                                    </Button>
+                                                </div>
                                                 <div>
                                                     <h3 className="text-lg font-medium mb-2">Costumes</h3>
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
-                                                        {sprite.costumes.map((costume) => (
-                                                            <div key={costume.md5ext + "-parsedblocks"} className="flex flex-col items-center">
+                                                        {sprite.costumes.map((costume, costumeIndex) => (
+                                                            <div key={`sprite-${sprite.name}-costume-${costumeIndex}-${costume.md5ext}`} className="flex flex-col items-center">
                                                                 <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                                 </div>
@@ -593,8 +673,8 @@ export function TutorialDisplay() {
                                                 <div>
                                                     <h3 className="text-lg font-medium mb-2">Sounds</h3>
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
-                                                        {sprite.sounds.map((sound) => (
-                                                            <div key={sound.md5ext + "-parsedblocks"} className="flex flex-col items-center">
+                                                        {sprite.sounds.map((sound, soundIndex) => (
+                                                            <div key={`sprite-${sprite.name}-sound-${soundIndex}-${sound.md5ext}`} className="flex flex-col items-center">
                                                                 <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
                                                                 </div>
@@ -607,8 +687,8 @@ export function TutorialDisplay() {
                                                 <div>
                                                     <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
                                                     <div className="space-y-4">
-                                                        {sprite.blocks.map((codeblock) => (
-                                                            <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock + "-parsedblocks"}>
+                                                        {sprite.blocks.map((codeblock, blockIndex) => (
+                                                            <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={`sprite-${sprite.name}-codeblock-${blockIndex}`}>
                                                                 {codeblock}
                                                             </ScratchBlocks>
                                                         ))}
@@ -647,7 +727,7 @@ export function TutorialDisplay() {
                             <TableBody>
                                 {typeof tutorialState.data?.llmAnalysis === 'object' ? 
                                     tutorialState.data?.llmAnalysis?.steps?.map((step, index) => (
-                                        <TableRow key={index}>
+                                        <TableRow key={`tutorial-step-${index}`}>
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{step.title}</TableCell>
                                             <TableCell>{step.target.map((target) => `${target.targetType} ${target.targetName}`).join(', ')}</TableCell>
@@ -681,7 +761,7 @@ export function TutorialDisplay() {
                                     ? (
                                         <>
                                             {tutorialState.data?.llmAnalysis?.extensions?.map((extension, index) => (
-                                                <p key={index} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
+                                                <p key={`extension-${index}`} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
                                                     {index + 1}. {extension}
                                                 </p>
                                             ))}
@@ -776,7 +856,7 @@ export function TutorialDisplay() {
                                     </div>
                                     <AccordionContent className="pt-2 pb-4 px-1 space-y-4">
                                         {Object.entries(groupedAssetsByExtension).map(([extension, assetList]) => (
-                                            <div key={extension} className="mb-4">
+                                            <div key={`asset-type-${extension}`} className="mb-4">
                                                 <h4 className="text-md font-medium mb-2 flex items-center gap-1.5">
                                                     {assetList[0].type === 'image' ? <ImageIcon className="h-4 w-4"/> : <Music className="h-4 w-4"/>}
                                                     {extension.toUpperCase()} Files ({assetList.length})
@@ -792,8 +872,8 @@ export function TutorialDisplay() {
                                                     </TableHeader>
                                                     <TableBody>
                                                         {assetList.map((asset) => (
-                                                            <TableRow key={asset.md5ext + "-assets"}>
-                                                                 <TableCell>
+                                                            <TableRow key={`asset-row-${asset.md5ext}`}>
+                                                                <TableCell>
                                                                  <div className="w-32 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
                                                                  </div>
