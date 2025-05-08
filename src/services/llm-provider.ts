@@ -392,6 +392,7 @@ You are an experienced Scratch educator.
 Produce ONLY valid JSON (no markdown) that conforms exactly to the schema.
 For steps, you should first think about the functionality of the project, and then break it down into steps.
 You should think about the order of the steps to make the tutorial most effective and easy to follow.
+The step by step tutorial should cover all code in the project.
 
 • description = one paragraph of what the finished project does.
 • steps      = [{ 
