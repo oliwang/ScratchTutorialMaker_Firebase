@@ -31,6 +31,7 @@ import JSZip from "jszip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 // Import ScratchBlocks component
 import ScratchBlocks from "./blocks";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Helper to determine resource type icon
 const getAssetIcon = (assetType: 'image' | 'sound') => {
@@ -471,70 +472,92 @@ export function TutorialDisplay() {
                             </div>
                             <AccordionContent className="pt-2 pb-4 px-1">
                                 {tutorialState.data?.parsedBlocks && (
-                                    // display as a table, columns sprite name, costumes, sounds, code blocks
-                                    // start with the stage, then the sprites
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Sprite</TableHead>
-                                                <TableHead>Costumes</TableHead>
-                                                <TableHead>Sounds</TableHead>
-                                                <TableHead>Code Blocks</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {/* Stage */}
-                                            <TableRow key={tutorialState.data.parsedBlocks.stage.name}>
-                                                <TableCell>{tutorialState.data.parsedBlocks.stage.name}</TableCell>
-                                                <TableCell>
+                                    <Tabs defaultValue="stage" className="w-full">
+                                        <TabsList className="mb-4">
+                                            <TabsTrigger value="stage">{tutorialState.data.parsedBlocks.stage.name}</TabsTrigger>
+                                            {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
+                                                <TabsTrigger key={sprite.name} value={sprite.name}>{sprite.name}</TabsTrigger>
+                                            ))}
+                                        </TabsList>
+                                        
+                                        {/* Stage Content */}
+                                        <TabsContent value="stage" className="space-y-6">
+                                            <div>
+                                                <h3 className="text-lg font-medium mb-2">Costumes</h3>
+                                                <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.costumes.map((costume) => (
-                                                        // add type value to the assetInfo
-                                                        // not one image a row, wrap in a div
-                                                        <div className="flex flex-wrap gap-2" key={costume.md5ext}>
+                                                        <div key={costume.md5ext} className="flex flex-col items-center">
                                                             <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                            <span className="text-xs mt-1 text-center w-20 truncate" title={costume.name}>{costume.name}</span>
                                                         </div>
                                                     ))}
-                                                </TableCell>
-                                                <TableCell>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h3 className="text-lg font-medium mb-2">Sounds</h3>
+                                                <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.sounds.map((sound) => (
-                                                        <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} key={sound.md5ext} />
+                                                        <div key={sound.md5ext} className="flex flex-col items-center">
+                                                            <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
+                                                            <span className="text-xs mt-1 text-center w-20 truncate" title={sound.name}>{sound.name}</span>
+                                                        </div>
                                                     ))}
-                                                </TableCell>
-                                                <TableCell>
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
+                                                <div className="space-y-4">
                                                     {tutorialState.data.parsedBlocks.stage.blocks.map((codeblock) => (
                                                         <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock}>
                                                             {codeblock}
                                                         </ScratchBlocks>
                                                     ))}
-                                                </TableCell>
-                                            </TableRow>
-                                            {/* Sprites */}
-                                            {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
-                                                <TableRow key={sprite.name}>
-                                                    <TableCell>{sprite.name}</TableCell>
-                                                    <TableCell>
+                                                </div>
+                                            </div>
+                                        </TabsContent>
+                                        
+                                        {/* Sprite Contents */}
+                                        {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
+                                            <TabsContent key={sprite.name} value={sprite.name} className="space-y-6">
+                                                <div>
+                                                    <h3 className="text-lg font-medium mb-2">Costumes</h3>
+                                                    <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.costumes.map((costume) => (
-                                                            <div className="flex flex-wrap gap-2" key={costume.md5ext}>
+                                                            <div key={costume.md5ext} className="flex flex-col items-center">
                                                                 <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                                <span className="text-xs mt-1 text-center w-20 truncate" title={costume.name}>{costume.name}</span>
                                                             </div>
                                                         ))}
-                                                    </TableCell>
-                                                    <TableCell>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <h3 className="text-lg font-medium mb-2">Sounds</h3>
+                                                    <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.sounds.map((sound) => (
-                                                            <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} key={sound.md5ext} />
+                                                            <div key={sound.md5ext} className="flex flex-col items-center">
+                                                                <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
+                                                                <span className="text-xs mt-1 text-center w-20 truncate" title={sound.name}>{sound.name}</span>
+                                                            </div>
                                                         ))}
-                                                    </TableCell>
-                                                    <TableCell>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div>
+                                                    <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
+                                                    <div className="space-y-4">
                                                         {sprite.blocks.map((codeblock) => (
                                                             <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock}>
                                                                 {codeblock}
                                                             </ScratchBlocks>
                                                         ))}
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+                                        ))}
+                                    </Tabs>
                                 )}
                             </AccordionContent>
                         </AccordionItem>
@@ -615,7 +638,7 @@ export function TutorialDisplay() {
                         <>
                              <Separator />
                             <Accordion type="single" collapsible className="w-full"> {/* Default to collapsed */}
-                                 <AccordionItem value="project-assets" className="border-b-0">
+                                 <AccordionItem value="project-json-content" className="border-b-0">
                                     {/* Modified AccordionTrigger container */}
                                     <div className="flex justify-between items-center w-full py-4">
                                         {/* Accordion Trigger on the left */}
@@ -641,7 +664,7 @@ export function TutorialDisplay() {
                         <>
                              {/* <Separator /> */}
                             <Accordion type="single" collapsible className="w-full"> {/* Default to collapsed */}
-                                 <AccordionItem value="project-assets" className="border-b-0">
+                                 <AccordionItem value="generated-tutorial-json" className="border-b-0">
                                     {/* Modified AccordionTrigger container */}
                                     <div className="flex justify-between items-center w-full py-4">
                                         {/* Accordion Trigger on the left */}
@@ -667,7 +690,7 @@ export function TutorialDisplay() {
                          <>
                             {/* <Separator /> */}
                              <Accordion type="single" collapsible className="w-full"> {/* Default to collapsed */}
-                                 <AccordionItem value="project-assets" className="border-b-0">
+                                 <AccordionItem value="project-assets-list" className="border-b-0">
                                     {/* Modified AccordionTrigger container */}
                                     <div className="flex justify-between items-center w-full py-4">
                                         {/* Accordion Trigger on the left */}
