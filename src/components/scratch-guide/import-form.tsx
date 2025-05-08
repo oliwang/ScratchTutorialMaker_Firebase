@@ -26,6 +26,9 @@ import { Loader2, Upload } from "lucide-react";
 import { extractAssetsFromProjectJson } from "@/lib/scratchUtils"; // Import the utility function
 import { generateAnalysis } from "@/services/llm-provider";
 
+import { parseProjectBlocks } from '@/lib/scratch-parser';
+
+
 // Mock GenerateTutorialStepsOutput type since the flow is removed
 interface GenerateTutorialStepsOutput {
     tutorialSteps: Array<{ functionality: string; steps: string[] }>;
@@ -101,10 +104,14 @@ export function ImportForm() {
           throw new Error("No .sb3 file provided.");
         }
 
-        // --- AI Generation Simulation (currently disabled) ---
-        // toast({ title: "Generating tutorial steps (Mock Data)..." }); // Commented out, AI disabled
-        // await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay (reduced)
-        const tutorialSteps = await generateAnalysis(projectJsonContent);
+        // Parse the project blocks
+        const parsedBlocks = parseProjectBlocks(projectJsonContent);
+        console.log("Parsed blocks:", parsedBlocks);
+        
+
+
+        // generate the tutorial steps
+        const tutorialSteps = await generateAnalysis(projectJsonContent, parsedBlocks);
 
          setTutorialData({
             status: "success",
@@ -114,6 +121,7 @@ export function ImportForm() {
                 resources: scratchProject.resources, // Keep original resources field
                 projectJsonContent: projectJsonContent,
                 assets: assets, // Store the extracted assets
+                parsedBlocks: parsedBlocks,
                 llmAnalysis: tutorialSteps,
             },
             error: null,

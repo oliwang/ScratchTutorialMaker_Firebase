@@ -7,7 +7,7 @@ const Ajv = require("ajv")
 import type { JSONSchemaType } from "ajv"
 import type { ChatCompletionMessageParam } from 'openai/resources';
 import type { Tutorial } from '@/store/atoms';
-
+import type { ParsedScratchProject } from '@/lib/scratch-parser';
 
 // Initialize the OpenAI client
 const openai = new OpenAI({
@@ -24,19 +24,6 @@ const tutorialSchema: JSONSchemaType<Tutorial> = {
   type: "object",
   properties: {
     description: { type: "string" },
-    sprites: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          name: { type: "string" },
-          image_path: { type: "string" },
-          code_snippets: { type: "array", items: { type: "string" } }
-        },
-        required: ["name", "image_path", "code_snippets"],
-        additionalProperties: false
-      }
-    },
     steps: {
       type: "array",
       items: {
@@ -395,29 +382,22 @@ end
 
 
 `;
+
 const SYSTEM_PROMPT = `
 You are an experienced Scratch educator.
-You should ALWAYS reference scratchblocks syntax when you provide code snippets.
-
-${scratchblocksSyntaxString}
 
 Produce ONLY valid JSON (no markdown) that conforms exactly to the schema.
 For steps, you should first think about the functionality of the project, and then break it down into steps.
 You should think about the order of the steps to make the tutorial most effective and easy to follow.
 
 • description = one paragraph of what the finished project does.
-• sprites     = [{ 
-    name, 
-    image_path (path to the image file), 
-    code_snippets (array of scratchblocks syntax) that belong to this sprite
-  }]
 • steps      = [{ 
     title (≤20 words), 
     target: { 
       targetType: "sprite" or "backdrop", 
       targetName: name of the target sprite or backdrop + "-" + costume name
     }, 
-    code (scratchblocks syntax, use proper indentation and newlines, leave blank if no code is added), 
+    code (scratchblocks syntax, leave blank if no code is added), 
     explanation
   }]
 • extensions = 2–4 bullet ideas to extend the project.
@@ -438,7 +418,7 @@ function buildMessages(userRequest: string): ChatCompletionMessageParam[] {
 
 export async function generateWithJsonMode(
   userRequest: string,
-  model = "gpt-4o-mini"
+  model = "o3-mini"
 ): Promise<Tutorial> {
   const response = await openai.chat.completions.create({
     model,
@@ -471,12 +451,16 @@ export async function generateWithJsonMode(
   return data;
 }
 
+// Here's the Scratch project.json file:
+
+// ${JSON.stringify(parsedProject, null, 2)}
+
 /**
  * Generate an analysis of a Scratch project using OpenAI
  * @param projectJson The project.json content from a Scratch project
  * @returns A promise that resolves to the analysis text
  */
-export async function generateAnalysis(projectJson: string): Promise<Tutorial> {
+export async function generateAnalysis(projectJson: string, parsedBlocks: ParsedScratchProject): Promise<Tutorial> {
   try {
     const parsedProject = JSON.parse(projectJson);
     
@@ -484,11 +468,11 @@ export async function generateAnalysis(projectJson: string): Promise<Tutorial> {
     const prompt = `
 This is a project.json file from a scratch project (.sb3). Create a step by step tutorial for young learners. You should first provide a general description of the project (what it does), and then provide a section of the features and variables, sprites, etc. Then break down the project into bit-size sections, and provide step by step guide on how to build it. At last, provide ideas for extensions of the current questions.
 
-Here's the Scratch project.json file:
+Here's the parsed blocks, grouped by sprite and stage:
 
-${JSON.stringify(parsedProject, null, 2)}
+${JSON.stringify(parsedBlocks, null, 2)}
 
-Generate a step by step tutorial for young learners.
+Generate a step by step tutorial for young learners. A young learner at home should be able to follow the tutorial and build the project.
 `;
     const response = await generateWithJsonMode(prompt);
     console.log(response);

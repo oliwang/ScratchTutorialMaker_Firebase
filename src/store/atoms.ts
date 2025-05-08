@@ -1,5 +1,5 @@
 import { atom } from 'jotai';
-
+import type { ParsedScratchProject } from '@/lib/scratch-parser';
 // Define the structure locally since the flow file is removed
 interface TutorialStepSection {
     functionality: string;
@@ -20,6 +20,7 @@ interface TutorialData {
     resources: string[]; // Keep original resources if needed, maybe rename?
     projectJsonContent: string | null; // Add field to store project.json content
     assets: AssetInfo[]; // Add field for extracted assets
+    parsedBlocks: ParsedScratchProject;
     llmAnalysis?: Tutorial | string; // Can be Tutorial object or stringified JSON
 }
 
@@ -59,7 +60,6 @@ export interface Step {
   
   export interface Tutorial {
     description: string;
-    sprites: Sprite[];
     steps: Step[];
     extensions?: string[];
   }

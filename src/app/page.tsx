@@ -21,11 +21,7 @@ export default function Home() {
         
         {/* Show combined analysis when project is loaded */}
         {tutorialState.status !== 'idle' && (
-          <Card>
-            <CardContent className="p-6">
-              <TutorialDisplay />
-            </CardContent>
-          </Card>
+          <TutorialDisplay />
         )}
       </main>
     </div>
