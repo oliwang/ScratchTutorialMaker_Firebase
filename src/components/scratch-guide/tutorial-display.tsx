@@ -794,7 +794,9 @@ export function TutorialDisplay() {
                                                         {assetList.map((asset) => (
                                                             <TableRow key={asset.md5ext + "-assets"}>
                                                                  <TableCell>
+                                                                 <div className="w-32 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
+                                                                 </div>
                                                                 </TableCell>
                                                                 <TableCell className="font-medium truncate max-w-[150px]" title={asset.name}>{asset.name}</TableCell>
                                                                 <TableCell className="text-muted-foreground truncate max-w-[200px]" title={asset.md5ext}>{asset.md5ext}</TableCell>
