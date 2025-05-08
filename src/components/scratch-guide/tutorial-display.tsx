@@ -187,11 +187,11 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                 <Image
                     src={previewUrl}
                     alt={`Preview of ${assetInfo.name}`}
-                    width={40} // Small thumbnail size
-                    height={40}
-                    style={{ objectFit: 'contain', borderRadius: '4px' }}
+                    width={64} 
+                    height={64}
+                    style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
                     unoptimized // Necessary for blob URLs
-                    className="border bg-white" // Added white background for transparency
+                    className="max-w-full max-h-full" 
                 />
             );
         }
@@ -199,18 +199,24 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
         // Specific handling for SVG: show an icon
     if (assetInfo.dataFormat === 'svg') {
         return (
-            // <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50" title={`SVG: ${assetInfo.name}`}>
-            //      {/* Using a simple inline SVG icon as placeholder */}
-            //      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><circle cx="10" cy="15" r="2"/><path d="m20 17-1.09-1.09a2 2 0 0 0-2.82 0L10 22"/></svg>
-            // </div>
-            <embed src={previewUrl} type="image/svg+xml" className="h-10 w-10 rounded bg-muted/50" title={`SVG: ${assetInfo.name}`} />
-
+            <embed 
+                src={previewUrl} 
+                type="image/svg+xml" 
+                className="max-w-full max-h-full" 
+                style={{ width: '90%', height: '90%' }}
+                title={`SVG: ${assetInfo.name}`} 
+            />
         );
     }
         if (assetInfo.type === 'sound') {
              // Render a compact audio player
             return (
-                <audio controls src={previewUrl} style={{ maxWidth: '100px', height: '30px' }} className="rounded">
+                <audio 
+                    controls 
+                    src={previewUrl} 
+                    style={{ width: '100%', height: '24px' }} 
+                    className="rounded"
+                >
                     {/* Fallback text */}
                     Your browser does not support the audio element.
                     <a href={previewUrl} download={assetInfo.name}>Download</a>
@@ -220,7 +226,7 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
     }
 
      // Fallback or if asset type is unknown or previewUrl is null (and not SVG)
-    return <div className="flex items-center justify-center h-10 w-10 rounded bg-muted/50">
+    return <div className="flex items-center justify-center w-12 h-12 rounded">
              <FileText className="h-5 w-5 text-muted-foreground" />
            </div>;
 }
@@ -487,7 +493,9 @@ export function TutorialDisplay() {
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.costumes.map((costume) => (
                                                         <div key={costume.md5ext} className="flex flex-col items-center">
-                                                            <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                            <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
+                                                                <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                            </div>
                                                             <span className="text-xs mt-1 text-center w-20 truncate" title={costume.name}>{costume.name}</span>
                                                         </div>
                                                     ))}
@@ -499,8 +507,10 @@ export function TutorialDisplay() {
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.sounds.map((sound) => (
                                                         <div key={sound.md5ext} className="flex flex-col items-center">
-                                                            <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
-                                                            <span className="text-xs mt-1 text-center w-20 truncate" title={sound.name}>{sound.name}</span>
+                                                            <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
+                                                                <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
+                                                            </div>
+                                                            <span className="text-xs mt-1 text-center w-32 truncate" title={sound.name}>{sound.name}</span>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -526,7 +536,9 @@ export function TutorialDisplay() {
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.costumes.map((costume) => (
                                                             <div key={costume.md5ext} className="flex flex-col items-center">
-                                                                <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                                <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
+                                                                    <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
+                                                                </div>
                                                                 <span className="text-xs mt-1 text-center w-20 truncate" title={costume.name}>{costume.name}</span>
                                                             </div>
                                                         ))}
@@ -538,8 +550,10 @@ export function TutorialDisplay() {
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.sounds.map((sound) => (
                                                             <div key={sound.md5ext} className="flex flex-col items-center">
-                                                                <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
-                                                                <span className="text-xs mt-1 text-center w-20 truncate" title={sound.name}>{sound.name}</span>
+                                                                <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
+                                                                    <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
+                                                                </div>
+                                                                <span className="text-xs mt-1 text-center w-32 truncate" title={sound.name}>{sound.name}</span>
                                                             </div>
                                                         ))}
                                                     </div>
