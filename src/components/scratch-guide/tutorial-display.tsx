@@ -125,13 +125,38 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                 const blob = await assetFile.async('blob');
                  if (!isMounted) return; // Don't proceed if unmounted
 
-                objectUrl = URL.createObjectURL(blob);
-                 if (!isMounted) { // Check again after async op
-                    URL.revokeObjectURL(objectUrl);
-                    return;
-                 }
-                 console.log(assetInfo.dataFormat, objectUrl);
-                setPreviewUrl(objectUrl);
+                // For SVG files, create a string to render directly
+                if (assetInfo.dataFormat === 'svg' || assetInfo.md5ext.endsWith('.svg')) {
+                    const svgText = await assetFile.async('text');
+                    if (!isMounted) return;
+                    
+                    // Extract the SVG content without XML declaration if present
+                    let svgContent = svgText;
+                    if (svgContent.includes('<svg')) {
+                        const svgStartIndex = svgContent.indexOf('<svg');
+                        svgContent = svgContent.substring(svgStartIndex);
+                    }
+                    
+                    // Store SVG content in a data attribute to render inline later
+                    const tempUrl = URL.createObjectURL(new Blob([svgContent], { type: 'image/svg+xml' }));
+                    objectUrl = tempUrl;
+                    
+                    if (!isMounted) {
+                        URL.revokeObjectURL(tempUrl);
+                        return;
+                    }
+                    
+                    setPreviewUrl(tempUrl);
+                } else {
+                    objectUrl = URL.createObjectURL(blob);
+                    if (!isMounted) {
+                        URL.revokeObjectURL(objectUrl);
+                        return;
+                    }
+                    setPreviewUrl(objectUrl);
+                }
+                
+                console.log(assetInfo.dataFormat, objectUrl);
 
             } catch (err) {
                  console.error(`Error loading preview for ${assetInfo.name} (${assetInfo.md5ext}):`, err);
@@ -174,7 +199,26 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
     if (previewUrl) {
         console.log(assetInfo.type, previewUrl);
         if (assetInfo.type === 'image') {
-            // Render SVG and other images the same way with img tag for consistency
+            // Check if the file is an SVG
+            const isSvg = assetInfo.dataFormat === 'svg' || 
+                         (assetInfo.md5ext && assetInfo.md5ext.endsWith('.svg'));
+                
+            // For SVG images, use an img tag that renders the SVG directly
+            if (isSvg) {
+                return (
+                    <div className="w-full h-full flex items-center justify-center">
+                        <object 
+                            type="image/svg+xml"
+                            data={previewUrl}
+                            className="max-w-full max-h-full"
+                            style={{ width: '100%', height: '100%' }}
+                            aria-label={`SVG: ${assetInfo.name}`}
+                        />
+                    </div>
+                );
+            }
+            
+            // For non-SVG images, use the standard approach
             return (
                 <div className="w-full h-full flex items-center justify-center">
                     <img 
@@ -185,6 +229,24 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                     />
                 </div>
             );
+            
+            // Option 2: Uncomment to use Next.js Image component with unoptimized for SVGs 
+            // (requires dangerouslyAllowSVG in next.config.ts)
+            /*
+            return (
+                <div className="w-full h-full flex items-center justify-center">
+                    <Image
+                        src={previewUrl}
+                        alt={`Preview of ${assetInfo.name}`}
+                        width={64}
+                        height={64}
+                        unoptimized={isSvg}
+                        style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
+                        className="max-w-full max-h-full"
+                    />
+                </div>
+            );
+            */
         }
 
         if (assetInfo.type === 'sound') {
@@ -475,7 +537,7 @@ export function TutorialDisplay() {
                                                 <h3 className="text-lg font-medium mb-2">Costumes</h3>
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.costumes.map((costume) => (
-                                                        <div key={costume.md5ext} className="flex flex-col items-center">
+                                                        <div key={costume.md5ext + "-parsedblocks"} className="flex flex-col items-center">
                                                             <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                 <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                             </div>
@@ -489,7 +551,7 @@ export function TutorialDisplay() {
                                                 <h3 className="text-lg font-medium mb-2">Sounds</h3>
                                                 <div className="flex flex-row flex-wrap items-start gap-4">
                                                     {tutorialState.data.parsedBlocks.stage.sounds.map((sound) => (
-                                                        <div key={sound.md5ext} className="flex flex-col items-center">
+                                                        <div key={sound.md5ext + "-parsedblocks"} className="flex flex-col items-center">
                                                             <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
                                                                 <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
                                                             </div>
@@ -503,7 +565,7 @@ export function TutorialDisplay() {
                                                 <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
                                                 <div className="space-y-4">
                                                     {tutorialState.data.parsedBlocks.stage.blocks.map((codeblock) => (
-                                                        <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock}>
+                                                        <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock + "-parsedblocks"}>
                                                             {codeblock}
                                                         </ScratchBlocks>
                                                     ))}
@@ -518,7 +580,7 @@ export function TutorialDisplay() {
                                                     <h3 className="text-lg font-medium mb-2">Costumes</h3>
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.costumes.map((costume) => (
-                                                            <div key={costume.md5ext} className="flex flex-col items-center">
+                                                            <div key={costume.md5ext + "-parsedblocks"} className="flex flex-col items-center">
                                                                 <div className="w-16 h-16 flex items-center justify-center rounded-md overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                                 </div>
@@ -532,7 +594,7 @@ export function TutorialDisplay() {
                                                     <h3 className="text-lg font-medium mb-2">Sounds</h3>
                                                     <div className="flex flex-row flex-wrap items-start gap-4">
                                                         {sprite.sounds.map((sound) => (
-                                                            <div key={sound.md5ext} className="flex flex-col items-center">
+                                                            <div key={sound.md5ext + "-parsedblocks"} className="flex flex-col items-center">
                                                                 <div className="w-32 h-10 flex items-center justify-center overflow-hidden">
                                                                     <AssetPreviewCell assetInfo={{...sound, type: 'sound'}} uploadedFile={uploadedFile} />
                                                                 </div>
@@ -546,7 +608,7 @@ export function TutorialDisplay() {
                                                     <h3 className="text-lg font-medium mb-2">Code Blocks</h3>
                                                     <div className="space-y-4">
                                                         {sprite.blocks.map((codeblock) => (
-                                                            <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock}>
+                                                            <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3" key={codeblock + "-parsedblocks"}>
                                                                 {codeblock}
                                                             </ScratchBlocks>
                                                         ))}
@@ -730,7 +792,7 @@ export function TutorialDisplay() {
                                                     </TableHeader>
                                                     <TableBody>
                                                         {assetList.map((asset) => (
-                                                            <TableRow key={asset.md5ext}>
+                                                            <TableRow key={asset.md5ext + "-assets"}>
                                                                  <TableCell>
                                                                     <AssetPreviewCell assetInfo={asset} uploadedFile={uploadedFile} />
                                                                 </TableCell>
