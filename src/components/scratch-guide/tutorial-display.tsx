@@ -1,7 +1,7 @@
 "use client";
 
 import { useAtom } from "jotai";
-import { tutorialDataAtom, uploadedFileAtom, AssetInfo } from "@/store/atoms"; // Import AssetInfo
+import { tutorialDataAtom, uploadedFileAtom, AssetInfo, Tutorial } from "@/store/atoms"; // Import AssetInfo
 import {
     Card,
     CardContent,
@@ -29,6 +29,8 @@ import * as React from 'react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import JSZip from "jszip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// Import ScratchBlocks component
+import ScratchBlocks from "./blocks";
 
 // Helper to determine resource type icon
 const getAssetIcon = (assetType: 'image' | 'sound') => {
@@ -52,14 +54,6 @@ const formatTutorialForExport = (data: NonNullable<ReturnType<typeof useAtom<typ
     });
     content += '\n';
 
-    content += `Tutorial Steps:\n\n`;
-     (data.tutorialSteps ?? []).forEach((section, index) => {
-        content += `Section ${index + 1}: ${section.functionality}\n`;
-        section.steps.forEach((step, stepIndex) => {
-            content += `  Step ${stepIndex + 1}: ${step}\n`;
-        });
-        content += '\n';
-    });
 
 
      if (data.projectJsonContent) {
@@ -230,7 +224,7 @@ export function TutorialDisplay() {
     const [isDownloadingAll, setIsDownloadingAll] = React.useState(false);
     const [isDownloadingSingle, setIsDownloadingSingle] = React.useState<string | null>(null);
 
-     const handleExport = async () => {
+    const handleExport = async () => {
         if (tutorialState.status !== 'success' || !tutorialState.data) return;
          setIsExporting(true);
         toast({ title: "Exporting to Google Docs..." });
@@ -421,7 +415,7 @@ export function TutorialDisplay() {
 
     // --- Success State ---
     if (tutorialState.status === "success" && tutorialState.data) {
-        const { projectName, projectDescription, resources, tutorialSteps, projectJsonContent, assets } = tutorialState.data;
+        const { projectName, projectDescription, resources, llmAnalysis, projectJsonContent, assets } = tutorialState.data;
         const hasAssets = assets && assets.length > 0;
 
         return (
@@ -556,27 +550,82 @@ export function TutorialDisplay() {
                      <Separator />
                     <div>
                         <h3 className="text-lg font-medium mb-3 text-foreground">Step-by-Step Tutorial</h3>
-                        {tutorialSteps && tutorialSteps.length > 0 ? (
-                             <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-                                {tutorialSteps.map((section, index) => (
-                                    <AccordionItem key={index} value={`item-${index}`} className="border-b border-border">
-                                        <AccordionTrigger className="text-base font-medium hover:no-underline py-4 text-left">
-                                            <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                                            {`Part ${index + 1}: ${section.functionality}`}
-                                        </AccordionTrigger>
-                                        <AccordionContent className="pt-2 pb-4 px-1">
-                                            <ol className="list-decimal list-outside space-y-2 ml-5 text-foreground/90">
-                                                {section.steps.map((step, stepIndex) => (
-                                                    <li key={stepIndex} className="pl-1">{step}</li>
-                                                ))}
-                                            </ol>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                ))}
-                            </Accordion>
+                        {tutorialState.data?.llmAnalysis ? (
+                            <div className="border rounded-md bg-muted/50 p-4">
+                                <h4 className="text-md font-medium mb-3">Generated Tutorial (JSON)</h4>
+                                <ScrollArea className="h-96 w-full rounded-md border bg-muted/20 p-4">
+                                    <pre className="text-sm whitespace-pre-wrap break-words">
+                                        {typeof tutorialState.data.llmAnalysis === 'string' 
+                                            ? tutorialState.data.llmAnalysis 
+                                            : JSON.stringify(tutorialState.data.llmAnalysis, null, 2)}
+                                    </pre>
+                                </ScrollArea>
+                            </div>
                         ) : (
                             <p className="text-sm text-muted-foreground italic">No tutorial steps generated.</p>
                         )}
+                    </div>
+
+                    {/* Tutorial Description Section */}
+                    <Separator />
+                    <div>
+                        <h3 className="text-lg font-medium mb-3 text-foreground">Description</h3>
+                        <p className="text-sm text-muted-foreground">{
+                            // check is tutorialState.data?.llmAnalysis is a Tutorial object
+                            typeof tutorialState.data?.llmAnalysis === 'object'
+                            ? tutorialState.data?.llmAnalysis?.description
+                            : 'No description available'
+                        }</p>
+                    </div>
+
+                    {/* Step by step tutorial table section. Table columns: Step Number, Step Title, Step Target, Step Code, Step Explanation. */}
+                    <Separator />
+                    <div>
+                        <h3 className="text-lg font-medium mb-3 text-foreground">Step-by-Step Tutorial</h3>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>#</TableHead>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>Target</TableHead>
+                                    <TableHead>Code</TableHead>
+                                    <TableHead>Explanation</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {typeof tutorialState.data?.llmAnalysis === 'object' ? 
+                                    tutorialState.data?.llmAnalysis?.steps?.map((step, index) => (
+                                        <TableRow key={index}>
+                                            <TableCell>{index + 1}</TableCell>
+                                            <TableCell>{step.title}</TableCell>
+                                            <TableCell>{step.target.targetType} {step.target.targetName}</TableCell>
+                                            <TableCell>
+                                                <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3">
+                                                    {step.code}
+                                                </ScratchBlocks>
+                                            </TableCell>
+                                            <TableCell>{step.explanation}</TableCell>
+                                        </TableRow>
+                                    ))
+                                : null}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Extensions Section */}
+                    <Separator />
+                    <div>
+                        {typeof tutorialState.data?.llmAnalysis === 'object'
+                            ? <>
+                                <h3 className="text-lg font-medium mb-3 text-foreground">Extensions</h3>
+                                {tutorialState.data?.llmAnalysis?.extensions?.map((extension, index) => (
+                                    <p key={index} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
+                                        {extension}
+                                    </p>
+                                ))}
+                            </>
+                            : null
+                        }
                     </div>
 
                      {/* project.json display section */}
@@ -600,8 +649,10 @@ export function TutorialDisplay() {
                         </>
                     )}
 
+                    
+
                 </CardContent>
-                 <CardFooter className="flex justify-between items-center">
+                 {/* <CardFooter className="flex justify-between items-center">
                      <Button
                         onClick={handleExport}
                         disabled={isExporting}
@@ -620,7 +671,7 @@ export function TutorialDisplay() {
                          )}
                     </Button>
                      <div></div>
-                </CardFooter>
+                </CardFooter> */}
             </Card>
             </>
         );

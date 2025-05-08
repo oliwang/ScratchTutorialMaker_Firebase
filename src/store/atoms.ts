@@ -18,10 +18,9 @@ interface TutorialData {
     projectName: string;
     projectDescription: string;
     resources: string[]; // Keep original resources if needed, maybe rename?
-    tutorialSteps: TutorialStepSection[]; // Use locally defined type
     projectJsonContent: string | null; // Add field to store project.json content
     assets: AssetInfo[]; // Add field for extracted assets
-    llmAnalysis?: string; // Full analysis text from LLM
+    llmAnalysis?: Tutorial | string; // Can be Tutorial object or stringified JSON
 }
 
 type TutorialState = {
@@ -35,6 +34,35 @@ export const tutorialDataAtom = atom<TutorialState>({
     data: null,
     error: null,
 });
+
+/* ────────────────────────────────────────────────────────────
+   1.  TypeScript types  ➜  keep your IDE happy
+──────────────────────────────────────────────────────────── */
+export interface Step {
+    title: string;
+    target: CodeBlockTarget;
+    code: string;        // scratchblocks syntax
+    explanation: string;
+  }
+  
+  export interface Sprite {
+    name: string;
+    image_path: string;
+    code_snippets: string[];
+  }
+  
+  export interface CodeBlockTarget {
+    targetType: "sprite" | "backdrop";
+    targetName: string;
+  }
+  
+  
+  export interface Tutorial {
+    description: string;
+    sprites: Sprite[];
+    steps: Step[];
+    extensions?: string[];
+  }
 
 
 // Atom to store the uploaded .sb3 file object

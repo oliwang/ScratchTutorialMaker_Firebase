@@ -24,6 +24,7 @@ import { tutorialDataAtom, uploadedFileAtom, AssetInfo } from "@/store/atoms"; /
 import type { ScratchProject } from "@/services/scratch";
 import { Loader2, Upload } from "lucide-react";
 import { extractAssetsFromProjectJson } from "@/lib/scratchUtils"; // Import the utility function
+import { generateAnalysis } from "@/services/llm-provider";
 
 // Mock GenerateTutorialStepsOutput type since the flow is removed
 interface GenerateTutorialStepsOutput {
@@ -102,25 +103,8 @@ export function ImportForm() {
 
         // --- AI Generation Simulation (currently disabled) ---
         // toast({ title: "Generating tutorial steps (Mock Data)..." }); // Commented out, AI disabled
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay (reduced)
-
-        const mockTutorialResult: GenerateTutorialStepsOutput = {
-          tutorialSteps: [
-            {
-              functionality: "Getting Started (Mock Data)",
-              steps: ["Open the Scratch editor.", "Find the green flag.", "Click the green flag to start."]
-            },
-            {
-              functionality: "Making the Sprite Move (Mock Data)",
-              steps: ["Select a sprite.", "Go to the 'Motion' blocks category.", "Drag out a 'move 10 steps' block.", "Click the block to make the sprite move."]
-            },
-            {
-              functionality: "Adding Sound (Mock Data)",
-              steps: ["Go to the 'Sound' blocks category.", "Drag out a 'play sound [sound_name] until done' block.", "Attach it under the 'move 10 steps' block."]
-            }
-          ]
-        };
-        // --- End Mock Data ---
+        // await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay (reduced)
+        const tutorialSteps = await generateAnalysis(projectJsonContent);
 
          setTutorialData({
             status: "success",
@@ -128,14 +112,14 @@ export function ImportForm() {
                 projectName: scratchProject.name,
                 projectDescription: scratchProject.description,
                 resources: scratchProject.resources, // Keep original resources field
-                tutorialSteps: mockTutorialResult.tutorialSteps,
                 projectJsonContent: projectJsonContent,
                 assets: assets, // Store the extracted assets
+                llmAnalysis: tutorialSteps,
             },
             error: null,
         });
         toast({
-            title: "Tutorial Generated (Using Mock Data)",
+            title: "Tutorial Generated",
             description: `Loaded project: ${scratchProject.name}`,
         });
 

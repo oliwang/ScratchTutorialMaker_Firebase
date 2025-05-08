@@ -3,10 +3,9 @@
 import { useAtom } from "jotai";
 import { Header } from "@/components/layout/header";
 import { ImportForm } from "@/components/scratch-guide/import-form";
-import { CombinedAnalysis } from "@/components/scratch-guide/combined-analysis";
 import { Card, CardContent } from "@/components/ui/card";
 import { tutorialDataAtom } from "@/store/atoms"; // Import the atom
-
+import { TutorialDisplay } from "@/components/scratch-guide/tutorial-display";
 export default function Home() {
   const [tutorialState] = useAtom(tutorialDataAtom); // Read the atom state
 
@@ -24,7 +23,7 @@ export default function Home() {
         {tutorialState.status !== 'idle' && (
           <Card>
             <CardContent className="p-6">
-              <CombinedAnalysis />
+              <TutorialDisplay />
             </CardContent>
           </Card>
         )}
