@@ -108,14 +108,6 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
                  return;
             }
 
-            // Skip blob loading for SVG, we'll show an icon directly
-            // if (assetInfo.dataFormat === 'svg') {
-            //     setPreviewUrl(null); // Ensure no previous image tries to render
-            //     setIsLoading(false);
-            //     setError(null);
-            //     return;
-            // }
-
             setIsLoading(true);
             setError(null);
             setPreviewUrl(null); // Reset preview while loading
@@ -182,32 +174,19 @@ function AssetPreviewCell({ assetInfo, uploadedFile }: AssetPreviewCellProps) {
     if (previewUrl) {
         console.log(assetInfo.type, previewUrl);
         if (assetInfo.type === 'image') {
-             // Use Next Image for non-SVG images
+            // Render SVG and other images the same way with img tag for consistency
             return (
-                <Image
-                    src={previewUrl}
-                    alt={`Preview of ${assetInfo.name}`}
-                    width={64} 
-                    height={64}
-                    style={{ objectFit: 'contain', maxWidth: '100%', maxHeight: '100%' }}
-                    unoptimized // Necessary for blob URLs
-                    className="max-w-full max-h-full" 
-                />
+                <div className="w-full h-full flex items-center justify-center">
+                    <img 
+                        src={previewUrl}
+                        alt={`Preview of ${assetInfo.name}`}
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                        className="max-w-full max-h-full"
+                    />
+                </div>
             );
         }
 
-        // Specific handling for SVG: show an icon
-    if (assetInfo.dataFormat === 'svg') {
-        return (
-            <embed 
-                src={previewUrl} 
-                type="image/svg+xml" 
-                className="max-w-full max-h-full" 
-                style={{ width: '90%', height: '90%' }}
-                title={`SVG: ${assetInfo.name}`} 
-            />
-        );
-    }
         if (assetInfo.type === 'sound') {
              // Render a compact audio player
             return (
@@ -479,12 +458,16 @@ export function TutorialDisplay() {
                             <AccordionContent className="pt-2 pb-4 px-1">
                                 {tutorialState.data?.parsedBlocks && (
                                     <Tabs defaultValue="stage" className="w-full">
-                                        <TabsList className="mb-4">
-                                            <TabsTrigger value="stage">{tutorialState.data.parsedBlocks.stage.name}</TabsTrigger>
-                                            {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
-                                                <TabsTrigger key={sprite.name} value={sprite.name}>{sprite.name}</TabsTrigger>
-                                            ))}
-                                        </TabsList>
+                                        <div className="relative w-full overflow-hidden mb-4">
+                                            <div className="overflow-x-auto pb-3">
+                                                <TabsList className="inline-flex w-max">
+                                                    <TabsTrigger value="stage">{tutorialState.data.parsedBlocks.stage.name}</TabsTrigger>
+                                                    {tutorialState.data.parsedBlocks.sprites.map((sprite) => (
+                                                        <TabsTrigger key={sprite.name} value={sprite.name}>{sprite.name}</TabsTrigger>
+                                                    ))}
+                                                </TabsList>
+                                            </div>
+                                        </div>
                                         
                                         {/* Stage Content */}
                                         <TabsContent value="stage" className="space-y-6">
