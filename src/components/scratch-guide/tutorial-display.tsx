@@ -464,9 +464,11 @@ export function TutorialDisplay() {
                     <Separator />
                     <Accordion type="single" collapsible className="w-full" defaultValue={undefined}>
                         <AccordionItem value="parsed-blocks" className="border-b-0">
-                            <AccordionTrigger className="text-base font-medium hover:no-underline py-4 text-left flex items-center gap-2">
-                                <FileJson className="h-5 w-5 text-primary" /> Parsed Blocks
-                            </AccordionTrigger>
+                            <div className="flex justify-between items-center w-full py-4">
+                                <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
+                                    <FileJson className="h-5 w-5 text-primary" /> Parsed Blocks
+                                </AccordionTrigger>
+                            </div>
                             <AccordionContent className="pt-2 pb-4 px-1">
                                 {tutorialState.data?.parsedBlocks && (
                                     // display as a table, columns sprite name, costumes, sounds, code blocks
@@ -489,7 +491,7 @@ export function TutorialDisplay() {
                                                         // add type value to the assetInfo
                                                         // not one image a row, wrap in a div
                                                         <div className="flex flex-wrap gap-2" key={costume.md5ext}>
-                                                            <AssetPreviewCell assetInfo={{...costume, type: costume.dataFormat}} uploadedFile={uploadedFile} />
+                                                            <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                         </div>
                                                     ))}
                                                 </TableCell>
@@ -513,7 +515,7 @@ export function TutorialDisplay() {
                                                     <TableCell>
                                                         {sprite.costumes.map((costume) => (
                                                             <div className="flex flex-wrap gap-2" key={costume.md5ext}>
-                                                                <AssetPreviewCell assetInfo={{...costume, type: costume.dataFormat}} uploadedFile={uploadedFile} />
+                                                                <AssetPreviewCell assetInfo={{...costume, type: 'image'}} uploadedFile={uploadedFile} />
                                                             </div>
                                                         ))}
                                                     </TableCell>
@@ -544,9 +546,11 @@ export function TutorialDisplay() {
                     {/* Use collapsible accordion */}
                     <Accordion type="single" collapsible className="w-full">
                         <AccordionItem value="step-by-step-tutorial" className="border-b-0">
-                            <AccordionTrigger className="text-base font-medium hover:no-underline py-4 text-left flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary" /> Step-by-Step Tutorial
-                            </AccordionTrigger>
+                            <div className="flex justify-between items-center w-full py-4">
+                                <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
+                                    <FileText className="h-5 w-5 text-primary" /> Step-by-Step Tutorial
+                                </AccordionTrigger>
+                            </div>
                             <AccordionContent className="pt-2 pb-4 px-1">
                             <Table>
                             <TableHeader>
@@ -583,19 +587,28 @@ export function TutorialDisplay() {
 
                     {/* Extensions Section */}
                     <Separator />
-                    <div>
-                        {typeof tutorialState.data?.llmAnalysis === 'object'
-                            ? <>
-                                <h3 className="text-lg font-medium mb-3 text-foreground">What next?</h3>
-                                {tutorialState.data?.llmAnalysis?.extensions?.map((extension, index) => (
-                                    <p key={index} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
-                                        {index + 1}. {extension}
-                                    </p>
-                                ))}
-                            </>
-                            : null
-                        }
-                    </div>
+                    <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="what-next" className="border-b-0">
+                            <div className="flex justify-between items-center w-full py-4">
+                                <AccordionTrigger className="flex-1 text-lg font-medium hover:no-underline text-left flex items-center gap-2 p-0">
+                                    <BookOpen className="h-5 w-5 text-primary" /> What Next?
+                                </AccordionTrigger>
+                            </div>
+                            <AccordionContent className="pt-2 pb-4 px-1">
+                                {typeof tutorialState.data?.llmAnalysis === 'object'
+                                    ? (
+                                        <>
+                                            {tutorialState.data?.llmAnalysis?.extensions?.map((extension, index) => (
+                                                <p key={index} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
+                                                    {index + 1}. {extension}
+                                                </p>
+                                            ))}
+                                        </>
+                                    ) : null
+                                }
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
 
                      {/* project.json display section */}
                     {projectJsonContent && (
