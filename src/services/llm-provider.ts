@@ -31,12 +31,15 @@ const tutorialSchema: JSONSchemaType<Tutorial> = {
         properties: {
           title:       { type: "string" },
           target:      { 
-            type: "object", 
-            properties: {
-              targetType: { type: "string" },
-              targetName: { type: "string" }
-            },
-            required: ["targetType", "targetName"]
+            type: "array", 
+            items: {
+              type: "object",
+              properties: {
+                targetType: { type: "string" },
+                targetName: { type: "string" }
+              },
+              required: ["targetType", "targetName"]
+            }
           },
           code:        { type: "string" },
           explanation: { type: "string" }
@@ -393,10 +396,10 @@ You should think about the order of the steps to make the tutorial most effectiv
 • description = one paragraph of what the finished project does.
 • steps      = [{ 
     title (≤20 words), 
-    target: { 
+    target: [{ 
       targetType: "sprite" or "backdrop", 
-      targetName: name of the target sprite or backdrop + "-" + costume name
-    }, 
+      targetName: name of the target sprite or backdrop that the code block is targeting
+    }], 
     code (scratchblocks syntax, leave blank if no code is added), 
     explanation
   }]

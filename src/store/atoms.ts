@@ -41,7 +41,7 @@ export const tutorialDataAtom = atom<TutorialState>({
 ──────────────────────────────────────────────────────────── */
 export interface Step {
     title: string;
-    target: CodeBlockTarget;
+    target: CodeBlockTarget[];
     code: string;        // scratchblocks syntax
     explanation: string;
   }

@@ -35,6 +35,7 @@ const ScratchBlocks: React.FunctionComponent<Props> = ({
         let options: any = {}
         if (blockStyle !== undefined) options.style = 'scratch3'
         if (languages !== undefined) options.languages = languages
+        options.scale = 0.8
 
         const doc = scratchblocks.parse(String(children || ''), options)
         const svg = scratchblocks.render(doc, options)

@@ -539,23 +539,16 @@ export function TutorialDisplay() {
                     </Accordion>
                      
 
-                    {/* Tutorial Description Section
-                    <Separator />
-                    <div>
-                        <h3 className="text-lg font-medium mb-3 text-foreground">Description</h3>
-                        <p className="text-sm text-muted-foreground">{
-                            // check is tutorialState.data?.llmAnalysis is a Tutorial object
-                            typeof tutorialState.data?.llmAnalysis === 'object'
-                            ? tutorialState.data?.llmAnalysis?.description
-                            : 'No description available'
-                        }</p>
-                    </div> */}
-
                     {/* Step by step tutorial table section. Table columns: Step Number, Step Title, Step Target, Step Code, Step Explanation. */}
                     <Separator />
-                    <div>
-                        <h3 className="text-lg font-medium mb-3 text-foreground">Step-by-Step Tutorial</h3>
-                        <Table>
+                    {/* Use collapsible accordion */}
+                    <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="step-by-step-tutorial" className="border-b-0">
+                            <AccordionTrigger className="text-base font-medium hover:no-underline py-4 text-left flex items-center gap-2">
+                                <FileText className="h-5 w-5 text-primary" /> Step-by-Step Tutorial
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-2 pb-4 px-1">
+                            <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>#</TableHead>
@@ -571,7 +564,7 @@ export function TutorialDisplay() {
                                         <TableRow key={index}>
                                             <TableCell>{index + 1}</TableCell>
                                             <TableCell>{step.title}</TableCell>
-                                            <TableCell>{step.target.targetType} {step.target.targetName}</TableCell>
+                                            <TableCell>{step.target.map((target) => `${target.targetType} ${target.targetName}`).join(', ')}</TableCell>
                                             <TableCell>
                                                 <ScratchBlocks className="overflow-x-auto" blockStyle="scratch3">
                                                     {step.code}
@@ -583,14 +576,17 @@ export function TutorialDisplay() {
                                 : null}
                             </TableBody>
                         </Table>
-                    </div>
+
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
 
                     {/* Extensions Section */}
                     <Separator />
                     <div>
                         {typeof tutorialState.data?.llmAnalysis === 'object'
                             ? <>
-                                <h3 className="text-lg font-medium mb-3 text-foreground">Extensions</h3>
+                                <h3 className="text-lg font-medium mb-3 text-foreground">What next?</h3>
                                 {tutorialState.data?.llmAnalysis?.extensions?.map((extension, index) => (
                                     <p key={index} className="flex items-center gap-1.5 py-1 px-2.5 text-sm">
                                         {index + 1}. {extension}
