@@ -1,5 +1,7 @@
 # Scratch Tutorial Maker
 
+![ScratchTutorialMaker.jpg](ScratchTutorialMaker.jpg)
+
 A Next.js application that helps teachers and educators create tutorials from Scratch projects. The application can:
 
 1. Import Scratch projects (.sb3 files)
